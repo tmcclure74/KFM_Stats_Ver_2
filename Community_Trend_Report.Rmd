@@ -1,0 +1,2474 @@
+---
+output:
+  word_document:
+    toc: yes
+    reference_docx: Meta_Data/template.docx
+knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding,
+  output_dir = "Output_Documents") })
+---
+
+```{r Global options set, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+source("global.R")
+```
+
+
+```{r GLMM Tables, results = 'asis'}
+GLMM <- GLMM_Results %>% 
+  dplyr::filter(Data_Type == "Calculated Value",
+                `Dependent Variable` == "shannon_2005") |> 
+  dplyr::select(`Independent Variable`, `F`, Df, Df.res, `Pr(>F)`) |> 
+  dplyr::mutate(`F` = round(`F`, 3),
+                `Pr(>F)` = round(`Pr(>F)`, 4),
+                `Pr(>F)` = ifelse(`Pr(>F)` < 0.001, "< 0.001", as.character(`Pr(>F)`))) |> 
+  dplyr::rename(`Df (res)` = Df.res, `P-Value` =`Pr(>F)`)
+knitr::kable(GLMM)
+```
+
+## Sha Ind
+
+```{r Shannon Index Summary Tables (GLMM), results = 'asis'}
+Shannon_GLMM <- GLMM_Results %>% 
+  dplyr::filter(Data_Type == "Calculated Value",
+                `Dependent Variable` == "shannon_2005") %>% 
+  dplyr::select(`Independent Variable`, `F`, Df, Df.res, `Pr(>F)`)
+knitr::kable(Shannon_GLMM)
+```
+
+```{r Shannon Index Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Diversity, aes(x = Date, y = shannon_2005)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus, linetype = ReserveStatus),
+                       method = 'loess', formula = 'y~x') +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(NA, NA), expand = c(0, 0), oob = squish) +
+  # ggplot2::scale_color_manual(values = Island_Viridis_Colors) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL, linetype = "Reserve Status", color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Diversity, aes(x = Date, y = shannon_2005, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1, method = 'loess', formula = 'y~x') +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(NA, NA), expand = c(0, 0), oob = squish) +
+  # ggplot2::scale_color_viridis_d() +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005,
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Diversity, 
+                       aes(x = Date, y = shannon_2005, color = IslandName, linetype = ReserveStatus),
+                       method = 'loess', formula = 'y~x', se = F) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(NA, NA), oob = squish) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  # ggplot2::scale_color_viridis_d() +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme() 
+Diversity_Plot <-ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Diversity_annotated <- ggpubr::annotate_figure(
+  Diversity_Plot,
+  left = text_grob("Shannon's Index (Diversity)", 
+                   family ="Cambria", color = "black", rot = 90, size = 13))
+print(Diversity_annotated)
+```
+
+## Sim Ind
+
+```{r Simpsons Index Summary Tables (GLMM), results = 'asis'}
+Simpson_GLMM <- GLMM_Results %>% 
+  dplyr::filter(Data_Type == "Calculated Value",
+                `Dependent Variable` == "simpson") %>% 
+  dplyr::select(`Independent Variable`, `F`, Df, Df.res, `Pr(>F)`)
+knitr::kable(Simpson_GLMM)
+```
+
+```{r Simpsons Index Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Diversity, aes(x = Date, y = simpson, linetype = ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(.65, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Diversity, aes(x = Date, y = simpson, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(.55, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005,
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",     
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",                            
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Diversity, 
+                       aes(x = Date, y = simpson, color = IslandName, linetype = ReserveStatus),
+                       method = 'loess', formula = 'y~x', se = F) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0.1, 0.1)),
+                              limits = c(.50, NA), oob = squish) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island Code",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme() 
+Simp_Diversity_Plot <-ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Simp_Diversity_annotated <- ggpubr::annotate_figure(
+  Simp_Diversity_Plot,
+  left = text_grob("Simpson's Index (Diversity)", 
+                   family ="Cambria", color = "black", rot = 90, size = 13)
+)
+print(Simp_Diversity_annotated)
+```
+
+## Com Sim
+
+```{r Community Similarity, warning= FALSE, message= FALSE, fig.height=7.5, fig.width=10}
+
+ggplot2::ggplot() +
+  ggplot2::geom_path(data = ellipses,  size = 1,
+            aes(x = NMDS1, y = NMDS2, color = IslandName)) +
+  ggplot2::geom_point(data = nMDS,  size = 2,
+             aes(x = NMDS1, y = NMDS2, shape = ReserveStatus, color = IslandName)) +
+  ggplot2::geom_text(data = nMDS, size = 1.5, vjust = 2,
+            aes(x = NMDS1, y = NMDS2, label = SiteCode)) +
+  ggplot2::geom_text(
+    data = anosim_table, size = 3, vjust = -1, hjust = 1.1,
+    aes(x = -Inf, y = -Inf, 
+        label = paste("P-Value:", P_val, "  R:", round(R_statistic, 2), sep = ""))) +
+  ggplot2::guides(shape = guide_legend(order = 1)) +
+  ggplot2::scale_color_manual(values = Island_Viridis_Colors) +
+  ggplot2::coord_fixed() +
+  ggplot2::scale_x_reverse() +
+  ggplot2::facet_wrap(facets = vars(SurveyYear), nrow = 3) +
+  ggplot2::labs(color = "Island",
+       shape = "Reserve Status") +
+  nMDS_theme()
+```
+
+## Ran For
+
+```{r RF Variable Importance, message=FALSE, warning=FALSE, fig.height=7.5, fig.width=10}
+
+Top_30_MDA <- RF_Importance %>%
+  dplyr::arrange(desc(MeanDecreaseAccuracy)) %>%  
+  head(30) %>% 
+  droplevels()
+
+Top_30_MDG <- RF_Importance %>% 
+  dplyr::arrange(desc(MeanDecreaseGini)) %>%  
+  head(30) %>% 
+  droplevels()
+
+Accuracy <- ggplot2::ggplot(Top_30_MDA, aes(x = MeanDecreaseAccuracy, 
+                               y = reorder(CommonName, MeanDecreaseAccuracy), 
+                               color = Targeted)) +
+  ggplot2::geom_point() +
+  ggplot2::geom_segment(size = 1, 
+               aes(x = min(MeanDecreaseAccuracy) -1, xend = MeanDecreaseAccuracy,
+                   y = CommonName, yend = CommonName)) +
+  ggplot2::labs(x = "Mean Decrease in % Accuracy", y = NULL, 
+       color = NULL, linetype = NULL) +
+  ggplot2::scale_x_continuous(expand = expansion(mult = c(0,.1)), 
+                     limits = c(min(Top_30_MDA$MeanDecreaseAccuracy) - 1, NA)) +
+  ggplot2::scale_color_manual(values = Target_Colors) +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
+
+Gini <- ggplot2::ggplot(Top_30_MDG, aes(x = MeanDecreaseGini, 
+                           y = reorder(CommonName, MeanDecreaseGini),
+                           color = Targeted)) +
+  ggplot2::geom_point() +
+  ggplot2::geom_segment(size = 1,
+               aes(x = min(MeanDecreaseGini) - 1, xend = MeanDecreaseGini,
+                   y = CommonName, yend = CommonName)) +
+  ggplot2::labs(x = "Mean Decrease in Gini Index", y = NULL, 
+       color = NULL, linetype = NULL) +
+  ggplot2::scale_x_continuous(expand = expansion(mult = c(0,.1)), 
+                     limits = c(min(Top_30_MDG$MeanDecreaseGini) - 1, NA)) +
+  ggplot2::scale_color_manual(values = Target_Colors) +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
+ggpubr::ggarrange(Accuracy, Gini, ncol = 2, align = "h", common.legend = TRUE, legend = "bottom")
+
+```
+
+```{r RF PDP Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+ggplot(data = partial_df, aes(x = x_var, y = yhat, color = CommonName)) +
+  geom_line() +
+  facet_wrap_paginate(facets = vars(CommonName), nrow = 5, ncol = 3, page = 1, scales = "free") +
+  theme(legend.position = "none")
+
+ggplot(data = partial_df, aes(x = x_var, y = yhat, color = CommonName)) +
+  geom_path() +
+  facet_wrap_paginate(facets = vars(CommonName), nrow = 5, ncol = 3, page = 2, scales = "free") +
+  theme(legend.position = "none")
+```
+
+```{r RD PDP individual, warning=FALSE, message=FALSE}
+# Choose any variable to plot PDP
+Imp_Num <- 36
+pdp::partial(RF_Reserve_Model_2005,
+                    pred.var = RF_Importance$Common_Name[Imp_Num],
+                    train = Mixed_2005, plot = TRUE, rug = TRUE,
+                    plot.engine = "ggplot2") +
+    ggplot2::labs(title = gsub("_", " ", RF_Importance$Common_Name[Imp_Num]),
+         x = RF_Importance$Data_Type[Imp_Num], y = NULL, color = NULL) +
+    theme_classic() +
+    theme(plot.title = element_text(hjust = .5, size = 10),
+          axis.title = element_text(size = 9))
+```
+
+## Ind Spe Ana
+
+```{r ISA, warning=FALSE, message=FALSE, fig.height=7.5, fig.width=10, include=FALSE}
+indic_spp_table <- dplyr::data_frame(
+  ScientificName = character(), s.SR = double(), s.SC = double(), 
+  s.AN = double(), s.SB = double(), index = integer(), stat = double(),
+  p.value = double(), Year = integer(), ReserveStatus = character())
+for (h in base::unique(All_Community_Counts_Wide$ReserveStatus)) {
+  for (k in base::unique(All_Community_Counts_Wide$SurveyYear)) {
+    Indic_Spp <- All_Community_Counts_Wide %>%
+      dplyr::filter(ReserveStatus %in% h) %>%
+      dplyr::rename('KGBC YOY' = 'Sebastes atrovirens/carnatus/caurinus/chrysomelas')%>%  
+      dplyr::filter(SurveyYear %in% k) %>%
+      dplyr::select(-IslandCode, - IslandName, -SiteCode, -SiteName, - SurveyYear, - ReserveStatus) %>%
+      indicspecies::multipatt(multipatt_island_list, func = "r.g", control = how(nperm = 1000)) %>% 
+      .$sign %>%
+      tibble::rownames_to_column("ScientificName") %>%
+      dplyr::mutate(Year = k, ReserveStatus = h) %>%
+      dplyr::filter(p.value < 0.05) 
+    indic_spp_table <- base::rbind(indic_spp_table, Indic_Spp)
+  }
+}
+indic_sites <- c("s.SR", "s.SC", "s.AN", "s.SB")
+for (h in base::unique(All_Community_Counts_Wide$ReserveStatus)) {
+  for (i in indic_sites) {
+    Spp_List <- indic_spp_table %>%
+      dplyr::filter(!!as.symbol(i) == 1, ReserveStatus %in% h) %>%
+      .$ScientificName %>%
+      base::unique() 
+    
+    unique_spplist <- base::paste(h, i, "_Spp_List", sep = "")
+    base::assign(unique_spplist, Spp_List)
+  }
+}
+heat_map_data <- base::data.frame(
+  ScientificName = character(), stat = double(), p.value = double(),
+  year = integer(), IslandName = character(), ReserveStatus = character())
+
+for (h in base::unique(All_Community_Counts_Wide$ReserveStatus)) {
+  for (z in indic_sites) {
+    Spp_Scores <- indic_spp_table %>%
+      dplyr::filter(!!as.symbol(z) == 1, ReserveStatus %in% h) %>%
+      dplyr::mutate(IslandName = z, ReserveStatus = h)
+    heat_map_data <- heat_map_data %>%
+      base::rbind(Spp_Scores)
+  }
+}
+heat_map_data <- dplyr::select(
+  heat_map_data, ScientificName, stat, p.value, Year, IslandName, ReserveStatus)
+
+Outside_Heat_Species <- 
+  base::rep(c(Outsides.SR_Spp_List, Outsides.SC_Spp_List,
+              Outsides.AN_Spp_List, Outsides.SB_Spp_List), 
+            times = base::length(unique(heat_map_data$Year)))
+Inside_Heat_Species <- 
+  base::rep(c(Insides.SR_Spp_List, Insides.SC_Spp_List, 
+              Insides.AN_Spp_List, Insides.SB_Spp_List), 
+            times = base::length(unique(heat_map_data$Year)))
+Outside_Heat_Sites <- 
+  base::rep(c((base::rep("s.SR", each = length(Outsides.SR_Spp_List))), 
+              (base::rep("s.SC", each = base::length(Outsides.SC_Spp_List))), 
+              (base::rep("s.AN", each = base::length(Outsides.AN_Spp_List))), 
+              (base::rep("s.SB", each = base::length(Outsides.SB_Spp_List)))),
+            times = base::length(base::unique(heat_map_data$Year)))
+Inside_Heat_Sites <- 
+  base::rep(c((base::rep("s.SR", each = length(Insides.SR_Spp_List))), 
+              (base::rep("s.SC", each = base::length(Insides.SC_Spp_List))), 
+              (base::rep("s.AN", each = base::length(Insides.AN_Spp_List))), 
+              (base::rep("s.SB", each = base::length(Insides.SB_Spp_List)))),
+            times = base::length(base::unique(heat_map_data$Year)))
+Outside_Heat_Year <- 
+  base::rep((base::unique(heat_map_data$Year)), each = 
+              ((base::length(Outsides.SR_Spp_List))+
+                 (base::length(Outsides.SC_Spp_List))+
+                 (base::length(Outsides.AN_Spp_List))+
+                 (base::length(Outsides.SB_Spp_List))))
+Inside_Heat_Year <- 
+  base::rep((base::unique(heat_map_data$Year)), each = 
+              ((base::length(Insides.SR_Spp_List))+
+                 (base::length(Insides.SC_Spp_List))+
+                 (base::length(Insides.AN_Spp_List))+
+                 (base::length(Insides.SB_Spp_List))))
+Outside_full_heat_table <-  base::data.frame(
+  IslandName = Outside_Heat_Sites, Year = Outside_Heat_Year, 
+  ScientificName = Outside_Heat_Species, ReserveStatus = "Outside")
+
+Inside_full_heat_table <-  base::data.frame(
+  IslandName = Inside_Heat_Sites, Year = Inside_Heat_Year, 
+  ScientificName = Inside_Heat_Species, ReserveStatus = "Inside")
+
+full_heat_table <- rbind(Outside_full_heat_table, Inside_full_heat_table)
+
+short_names <- Species_Info %>% 
+  dplyr::select(ScientificName, ScientificName_Short_Form, Classification, Class_Short) %>% 
+  dplyr::filter(ScientificName %in% unique(indic_spp_table$ScientificName)) %>% 
+  dplyr::distinct()
+
+heat_map <- dplyr::left_join(
+  full_heat_table, heat_map_data, by=c(
+    "IslandName", "Year", "ScientificName", "ReserveStatus")) %>%
+  dplyr::mutate(IslandName = dplyr::recode_factor(
+    IslandName, s.SR ="Santa Rosa Island", s.SC ="Santa Cruz Island",
+    s.AN ="Anacapa Island", s.SB ="Santa Barbara Island")) %>% 
+  dplyr::group_by(IslandName, ScientificName, ReserveStatus) %>% 
+  dplyr::mutate(frequency = length(stat[!is.na(stat)])) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::left_join(short_names) %>%
+  dplyr::arrange(desc(Class_Short), desc(frequency), desc(ReserveStatus)) 
+
+z <- 1
+for(i in levels(heat_map$IslandName)) {
+  Island_Heat_Data <- heat_map %>% 
+    dplyr::filter(IslandName == i) 
+  
+  Island_Heat_Data$ScientificName_Short_Form = fct_rev(
+    factor(Island_Heat_Data$ScientificName_Short_Form, 
+           levels = unique(Island_Heat_Data$ScientificName_Short_Form)))
+  Island_Heat_Data$Classification = factor(
+    Island_Heat_Data$Classification, levels = c("Fish", "Invertebrates", "Algae"))
+  
+  p <- ggplot2::ggplot() +
+    geom_tile(data = Island_Heat_Data,
+              aes(x = Year, y = ScientificName_Short_Form, fill = stat), color="black") +
+    ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by, expand = c(0, 0)) +
+    ggplot2::scale_y_discrete(expand = c(0, 0)) +
+    ggplot2::scale_fill_gradient2(low = scales::muted("lightgreen"), 
+                                  high = "forestgreen", na.value = scales::muted("firebrick")) + 
+    ggplot2::facet_grid(rows = vars(Classification), 
+                        cols = vars(ReserveStatus), scales = "free", space = "free") +
+    ggplot2::labs(title = i, x = "Year", y = "Species/Taxa", 
+                  fill = paste("Strength of", "\n", "Association")) +
+    ISA_theme()
+  unique_plotname <- paste("ISA.", z, sep = "")
+  assign(unique_plotname, p)
+  z <- z + 1
+}
+```
+
+```{r ISA SR, warning=FALSE, message=FALSE, fig.height=7.5, fig.width=10}
+print(ISA.1)
+```
+
+```{r ISA SC, warning=FALSE, message=FALSE, fig.height=7.5, fig.width=10}
+print(ISA.2)
+```
+
+```{r ISA AN, warning=FALSE, message=FALSE, fig.height=7.5, fig.width=10}
+print(ISA.3)
+```
+
+```{r ISA SB, warning=FALSE, message=FALSE, fig.height=7.5, fig.width=10}
+print(ISA.4)
+```
+
+## Par Par
+
+```{r Parastichopus parvimensis Densities Summary Tables (GLMM), results = 'asis'}
+knitr::kable(parpar, caption = paste(Parpar_table, " *Parastichopus parvimensis* GLMM results"))
+```
+
+```{r Parastichopus parvimensis Density Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+Mean_Density_Plot(Sci_Name = "Parastichopus parvimensis")
+```
+
+```{r Parastichopus parvimensis original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+
+Mean_Density_16_Plot(Sci_Name = "Parastichopus parvimensis", SST_Year = 1982) 
+```
+
+## Kel Kel
+
+```{r Kelletia kelletii Biomass Tables (GLMM), results = 'asis'}
+knitr::kable(kelwel, caption = paste(Kel_table, " *Kelletia kelletii* biomass GLMM results"))
+```
+
+```{r Kelletia kelletii Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+
+Mean_Biomass_Plot(Sci_Name = "Kelletia kelletii")
+```
+
+```{r Kelletia kelletii original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+
+Mean_Biomass_16_Plot(Sci_Name = "Kelletia kelletii", SST_Year = 1983)
+```
+
+## Pan Int
+
+```{r Panulirus interruptus Densities Summary Tables (GLMM), results = 'asis'}
+knitr::kable(palint, caption = paste(Lobsta_table, " *Panulirus interruptus* density GLMM results"))
+```
+
+```{r Panulirus interruptus Density Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+
+Mean_Density_Plot(Sci_Name = "Panulirus interruptus")
+```
+
+```{r Panulirus interruptus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+
+Mean_Density_16_Plot(Sci_Name = "Panulirus interruptus", SST_Year = 1983) 
+```
+
+## Hyp Rub
+
+```{r Hypsypops rubicundus Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(hyprub, caption = paste(Hypsy_table, " Garibaldi biomass GLMM results"))
+```
+
+```{r Hypsypops rubicundus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+
+Mean_Biomass_Plot(Sci_Name = "Hypsypops rubicundus")
+```
+
+```{r Hypsypops rubicundus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+
+Mean_Density_16_Plot(Sci_Name = "Hypsypops rubicundus", SST_Year = 1985)
+```
+
+## Cys Osm
+
+```{r Cystoseira cover Summary Tables (GLMM), results = 'asis'}
+knitr::kable(cystoseira, caption = paste(Cysto_table, " *Cystoseira* sp. percent cover GLMM results"))
+```
+
+```{r Cystoseira cover Plots, fig.width=7.5, warning=FALSE, message=FALSE, fig.height=8.5}
+p1 <- ggplot2::ggplot(RPC_Cover_Wide, 
+                       aes(x = Date, y = Cystoseira, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL, linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(RPC_Cover_Wide, 
+                       aes(x = Date, y = Cystoseira, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL, color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = RPC_Cover_Wide,
+                       aes(x = Date, y = Cystoseira, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+cysto_cover_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+cysto_cover_annotated <- ggpubr::annotate_figure(
+  cysto_cover_Plot,
+  left = text_grob(paste("Cystoseria sp. percent cover"),
+                   color = "black", rot = 90, size = 12))
+print(cysto_cover_annotated)
+```
+
+```{r Cystoseira original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Gari <- Original_16_rpcs_Data %>% 
+  dplyr::filter(ScientificName == "Cystoseira") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Gari, aes(x = Date, y = Percent_Cover, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Gari, size = 1,
+              aes(x = Date, y = Percent_Cover, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1982-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Gari_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+Gari_Orig16_annotated <- ggpubr::annotate_figure(
+  Gari_Orig16_Plot,
+  left = text_grob("Cystoseira sp. percent cover (%)",
+                   color = "black", rot = 90, size = 12))
+print(Gari_Orig16_annotated)
+```
+
+## Tet Aur
+
+```{r Tethya aurantia Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(tetaur, caption = paste(Tet_table, " *Tethya aurantia* biomass GLMM results"))
+```
+
+```{r Tethya aurantia Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Benthic_Biomass_Wide,
+                       aes(x = Date, y = Tethya_aurantia, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Tethya_aurantia, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Tethya_aurantia, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Tetaur_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Tetaur_Biomass_annotated <- ggpubr::annotate_figure(
+  Tetaur_Biomass_Plot,
+  left = text_grob(paste("Tethya aurantia Biomass (g/m²)"),
+                   color = "black", rot = 90, size = 12))
+print(Tetaur_Biomass_annotated)
+```
+
+```{r Tethya aurantia original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Tetaur <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Tethya aurantia") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Tetaur, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf,
+                          vjust = 1, hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Tetaur, size = 1,
+                       aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1983-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Tetaur_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8,1))
+Tetaur_Orig16_annotated <- ggpubr::annotate_figure(
+  Tetaur_Orig16_Plot,
+  left = text_grob("Tethya aurantia biomass (g/m²)",
+                   color = "black", rot = 90, size = 12))
+print(Tetaur_Orig16_annotated)
+```
+
+## Str Fra
+
+```{r Strongylocentrotus franciscanus Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(mesfra, caption = paste(Red_table, " *Strongylocentrotus franciscanus* biomass GLMM results"))
+```
+
+```{r Strongylocentrotus franciscanus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(
+  Benthic_Biomass_Wide,
+  aes(x = Date, y = Strongylocentrotus_franciscanus, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Benthic_Biomass_Wide,
+                       aes(x = Date, y = Strongylocentrotus_franciscanus, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Strongylocentrotus_franciscanus, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +  
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1),
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+RedUrchin_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+RedUrchin_Biomass_annotated <- ggpubr::annotate_figure(
+  RedUrchin_Biomass_Plot,
+  left = text_grob("Strongylocentrotus franciscanus (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(RedUrchin_Biomass_annotated)
+```
+
+```{r Strongylocentrotus franciscanus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Strfra <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Strongylocentrotus franciscanus") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Strfra, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1,
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Strfra, size = 1,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Strfra_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+Strfra_Orig16_annotated <- ggpubr::annotate_figure(
+  Strfra_Orig16_Plot,
+  left = text_grob("Strongylocentrotus franciscanus biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(Strfra_Orig16_annotated)
+```
+
+## Pat Min
+
+```{r Patiria miniata Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(patmin, caption = paste(Pat_table, " *Patiria miniata* biomass GLMM results"))
+```
+
+```{r Patiria miniata Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Benthic_Biomass_Wide,
+                       aes(x = Date, y = Patiria_miniata, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Benthic_Biomass_Wide,
+                       aes(x = Date, y = Patiria_miniata, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide,
+                       aes(x = Date, y = Patiria_miniata, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)), 
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1),
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Patmin_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Patmin_Biomass_annotated <- ggpubr::annotate_figure(
+  Patmin_Biomass_Plot,
+  left = text_grob(paste("Patiria miniata Biomass (g/m²)"), 
+                   color = "black", rot = 90, size = 12))
+print(Patmin_Biomass_annotated)
+```
+
+```{r Patiria miniata original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Patmin <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Patiria miniata") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Patmin, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Patmin, size = 1,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Patmin_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+Patmin_Orig16_annotated <- ggpubr::annotate_figure(
+  Patmin_Orig16_Plot,
+  left = text_grob("Patiria miniata biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(Patmin_Orig16_annotated)
+```
+
+## Mac Pyr
+
+```{r Macrocystis pyrifera Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(fsc, caption = paste(Kelp_table, " *Macrocystis pyrifera* biomass GLMM results"))
+```
+
+```{r Macrocystis pyrifera Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                      aes(x = Date, y = Macrocystis_pyrifera, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                      aes(x = Date, y = Macrocystis_pyrifera, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005,
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide,
+                       aes(x = Date, y = Macrocystis_pyrifera, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0))) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Kelp_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Kelp_Biomass_annotated <- ggpubr::annotate_figure(
+  Kelp_Biomass_Plot,
+  left = text_grob("Foliar Standing Crop (FSC) (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(Kelp_Biomass_annotated)
+
+```
+
+```{r Macrocystis pyrifera original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Macro <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Macrocystis pyrifera") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Macro, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1,
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Macro, size = 1, se = FALSE,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1984-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Macro_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+Macro_Orig16_annotated <- ggpubr::annotate_figure(
+  Macro_Orig16_Plot,
+  left = text_grob("Macrocystis pyrifera biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(Macro_Orig16_annotated)
+```
+
+## Lyt Ana
+
+```{r Lytechinus anamesus Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(lytana, caption = paste(White_table, " *Lytechinus anamesus* biomass GLMM results"))
+```
+
+```{r Lytechinus anamesus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(
+  Benthic_Biomass_Wide, 
+  aes(x = Date, y = Lytechinus_anamesus, linetype = ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(
+  Benthic_Biomass_Wide, 
+  aes(x = Date, y = Lytechinus_anamesus, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide,  
+                       aes(x = Date, y = Lytechinus_anamesus, color = IslandName,
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+PurpleUrchin_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+PurpleUrchin_Biomass_annotated <- ggpubr::annotate_figure(
+  PurpleUrchin_Biomass_Plot,
+  left = text_grob(glue("Lytechinus anamesus Biomass (g/m²)"), 
+                   color = "black", rot = 90, size = 12))
+print(PurpleUrchin_Biomass_annotated)
+
+```
+
+```{r Lytechinus anamesus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Lytana <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Lytechinus anamesus") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Lytana, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Lytana, size = 1,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1983-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Lytana_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+Lytana_Orig16_annotated <- ggpubr::annotate_figure(
+  Lytana_Orig16_Plot,
+  left = text_grob("Lytechinus anamesus biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(Lytana_Orig16_annotated)
+```
+
+## Str Pur
+
+```{r Strongylocentrotus purpuratus Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(strpur, caption = paste(Purp_table, " *Strongylocentrotus purpuratus* biomass GLMM results"))
+```
+
+```{r Strongylocentrotus purpuratus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(
+  Benthic_Biomass_Wide, 
+  aes(x = Date, y = Strongylocentrotus_purpuratus, linetype = ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(
+  Benthic_Biomass_Wide, 
+  aes(x = Date, y = Strongylocentrotus_purpuratus, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Strongylocentrotus_purpuratus, color = IslandName,
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  
+  ggplot2::guides(color = guide_legend(order = 1),
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+PurpleUrchin_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+PurpleUrchin_Biomass_annotated <- ggpubr::annotate_figure(
+  PurpleUrchin_Biomass_Plot,
+  left = text_grob(glue("Strongylocentrotus purpuratus", "Biomass (g/m²)"), 
+                   color = "black", rot = 90, size = 12))
+print(PurpleUrchin_Biomass_annotated)
+```
+
+```{r Strongylocentrotus purpuratus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Strpur <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Strongylocentrotus purpuratus") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Strpur, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1,
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Strpur, size = 1,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Strpur_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+Strpur_Orig16_annotated <- ggpubr::annotate_figure(
+  Strpur_Orig16_Plot,
+  left = text_grob("Strongylocentrotus purpuratus biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(Strpur_Orig16_annotated)
+```
+
+## Sem Pul
+
+```{r Semicossyphus pulcher Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(sempul_m, caption = paste(Sheep_table, " California sheephead male biomass GLMM results"))
+```
+
+```{r Semicossyphus pulcher Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Fish_Biomass_Wide,
+                       aes(x = Date, y = California_sheephead_male, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Fish_Biomass_Wide, 
+                       aes(x = Date, y = California_sheephead_male, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Fish_Biomass_Wide, 
+                       aes(x = Date, y = California_sheephead_male, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1),
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Sempul_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Sempul_Biomass_annotated <- ggpubr::annotate_figure(
+  Sempul_Biomass_Plot,
+  left = text_grob(paste("California sheephead male Biomass (g/site)"), 
+                   color = "black", rot = 90, size = 12))
+print(Sempul_Biomass_annotated)
+```
+
+```{r SheepM original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+SheepM <- Original_16_VFT_Data %>% 
+  dplyr::filter(CommonName == "California sheephead, male") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(SheepM, aes(x = Date, y = Mean_Density, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = SheepM, size = 1, se = FALSE,
+                       aes(x = Date, y = Mean_Density, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1985-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+SheepM_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+SheepM_Orig16_annotated <- ggpubr::annotate_figure(
+  SheepM_Orig16_Plot,
+  left = text_grob("California sheephead male density (#/m³)",
+                   color = "black", rot = 90, size = 12))
+print(SheepM_Orig16_annotated)
+```
+
+## Par Cla
+
+```{r Paralabrax clathratus Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(parcla, caption = paste(Bass_table, " Kelp bass biomass GLMM results"))
+```
+
+```{r Paralabrax clathratus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Fish_Biomass_Wide, 
+                       aes(x = Date, y = kelp_bass, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Fish_Biomass_Wide, 
+                       aes(x = Date, y = kelp_bass, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Fish_Biomass_Wide, 
+                       aes(x = Date, y = kelp_bass, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                     limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1),
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+parclat_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+parclat_Biomass_annotated <- ggpubr::annotate_figure(
+  parclat_Biomass_Plot,
+  left = text_grob(paste("Kelp Bass Biomass (g/site)"), 
+                   color = "black", rot = 90, size = 12))
+print(parclat_Biomass_annotated)
+```
+
+```{r Kelp Bass original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+KelpBass <- Original_16_VFT_Data %>% 
+  dplyr::filter(CommonName == "kelp bass") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(KelpBass, aes(x = Date, y = Mean_Density, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = KelpBass, size = 1, se = FALSE,
+                       aes(x = Date, y = Mean_Density, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1985-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+KelpBass_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+KelpBass_Orig16_annotated <- ggpubr::annotate_figure(
+  KelpBass_Orig16_Plot,
+  left = text_grob("kelp bass density (#/m³)",
+                   color = "black", rot = 90, size = 12))
+print(KelpBass_Orig16_annotated)
+```
+
+## Hal Sem Fem
+
+```{r Halichoeres semicinctus Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(halsem_f, caption = paste(Halsem_f_table, " Rock wrasse female biomass GLMM results"))
+```
+
+```{r Halichoeres semicinctus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Fish_Biomass_Wide, 
+                       aes(x = Date, y = rock_wrasse_female, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Fish_Biomass_Wide, 
+                       aes(x = Date, y = rock_wrasse_female, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Fish_Biomass_Wide, 
+                       aes(x = Date, y = rock_wrasse_female, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Halsem_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Halsem_Biomass_annotated <- ggpubr::annotate_figure(
+  Halsem_Biomass_Plot,
+  left = text_grob(paste("Rock wrasse female Biomass (g/site)"),
+                   color = "black", rot = 90, size = 12))
+print(Halsem_Biomass_annotated)
+```
+
+```{r Rock wrasse female original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+rwf <- Original_16_VFT_Data %>% 
+  dplyr::filter(CommonName == "rock wrasse, female") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(rwf, aes(x = Date, y = Mean_Density, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = rwf, size = 1, 
+                       aes(x = Date, y = Mean_Density, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1993-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+rwf_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+rwf_Orig16_annotated <- ggpubr::annotate_figure(
+  rwf_Orig16_Plot,
+  left = text_grob("rock wrasse female density (#/m³)",
+                   color = "black", rot = 90, size = 12))
+print(rwf_Orig16_annotated)
+```
+
+## Hal Sem Mal
+
+```{r Halichoeres semicinctus Male Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(halsem_m, caption = paste(Halsem_m_table, " Rock wrasse male biomass GLMM results"))
+```
+
+```{r Halichoeres semicinctus Male Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Fish_Biomass_Wide, 
+                       aes(x = Date, y = rock_wrasse_male, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Fish_Biomass_Wide, 
+                       aes(x = Date, y = rock_wrasse_male, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Fish_Biomass_Wide, 
+                       aes(x = Date, y = rock_wrasse_male, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Halsem_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Halsem_Biomass_annotated <- ggpubr::annotate_figure(
+  Halsem_Biomass_Plot,
+  left = text_grob(paste("rock wrasse male Biomass (g/site)"),
+                   color = "black", rot = 90, size = 12))
+print(Halsem_Biomass_annotated)
+```
+
+```{r Rock wrasse male original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+rwm <- Original_16_VFT_Data %>% 
+  dplyr::filter(CommonName == "rock wrasse, male") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(rwm, aes(x = Date, y = Mean_Density, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = rwm, size = 1, 
+                       aes(x = Date, y = Mean_Density, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1993-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+rwm_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+rwm_Orig16_annotated <- ggpubr::annotate_figure(
+  rwm_Orig16_Plot,
+  left = text_grob("rock wrasse male density (#/m³)",
+                   color = "black", rot = 90, size = 12))
+print(rwm_Orig16_annotated)
+```
+
+## Pyc Hel
+
+```{r Pycnopodia helianthoides Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(pychel, caption = paste(Pycno_table, " *Pycnopodia helianthoides* biomass GLMM results"))
+```
+
+```{r Pycnopodia helianthoides Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Pycnopodia_helianthoides, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL, linetype = "Reserve Status", color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Pycnopodia_helianthoides, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL, color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005,
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Pycnopodia_helianthoides, color = IslandName, 
+                           linetype = ReserveStatus), se = FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::guides(color = guide_legend(order = 1),
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Pychel_Biomass_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+Pychel_Biomass_annotated <- ggpubr::annotate_figure(
+  Pychel_Biomass_Plot,
+  left = text_grob(paste("Pycnopodia helianthoides Biomass (g/m²)"),
+                   color = "black", rot = 90, size = 12))
+print(Pychel_Biomass_annotated)
+```
+
+```{r Pycnopodia helianthoides original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+Pychel <- Original_16_Biomass_Data %>% 
+  dplyr::group_by(IslandName, ScientificName, SurveyYear) %>% 
+  dplyr::mutate(Mean_Biomass = mean(Mean_Biomass)) %>% 
+  # dplyr::distinct()
+  dplyr::filter(ScientificName == "Pycnopodia helianthoides") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(Pychel, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+   ggplot2::geom_smooth(data = Pychel, size = 1,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  # geom_line(data = Pychel, size = 1,
+  #             aes(x = Date, y = Mean_Biomass, color = IslandName),size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1983-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+Pychel_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+Pychel_Orig16_annotated <- ggpubr::annotate_figure(
+  Pychel_Orig16_Plot,
+  left = text_grob("Pycnopodia helianthoides biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(Pychel_Orig16_annotated)
+```
+
+## Bio Sum
+
+```{r Benthic Biomass Summary, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
+ggplot2::ggplot(Benthic_Biomass_Long, aes(x = SurveyYear, y = Mean_Biomass, fill = ScientificName)) +
+  ggplot2::geom_area(position = "stack", stat = "smooth") + 
+  ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by) +
+  ggplot2::scale_fill_manual(values = BenthicBiomassColor, 
+                             guide = guide_legend(ncol = 5, title.hjust = .5, title.position = "top")) +
+  ggplot2::facet_grid(rows= vars(IslandName), cols = vars(ReserveStatus), scales = "fixed") +
+  ggplot2::labs(title = NULL, x = "Survey Year", y = "Biomass (g/m²)", fill = "Scientific Name") +
+  Biomass_Summary_theme()
+```
+
+```{r Fish All, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
+ggplot2::ggplot(Fish_Biomass_Long, 
+                      aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
+  ggplot2::geom_area(position = "stack", stat = "smooth") + 
+  ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by) +
+  ggplot2::scale_y_continuous(limits = c(0, NA)) +
+  ggplot2::scale_fill_manual(values = Fish_Colors,
+                             guide = guide_legend(ncol = 6, title.hjust = .5, 
+                                                  title.position = "top")) +
+  ggplot2::facet_grid(rows= vars(IslandName), cols = vars(ReserveStatus), scales = "free") +
+  ggplot2::labs(title = NULL, subtitle = "All Species",
+                x = "Survey Year", y = "Biomass (g/site)",
+                fill = "Common Name") +
+  Biomass_Summary_theme()
+```
+
+```{r Fish Targeted, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
+ggplot2::ggplot(filter(Fish_Biomass_Long, Targeted == "Non-targeted"), 
+                      aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
+  ggplot2::geom_area(position = "stack", stat = "smooth") + 
+  ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by) +
+  ggplot2::scale_y_continuous(limits = c(0, NA)) +
+  ggplot2::scale_fill_manual(values = Fish_Colors,
+                             guide = guide_legend(ncol = 6, title.hjust = .5,
+                                                  title.position = "top")) +
+  ggplot2::facet_grid(rows= vars(IslandName), cols = vars(ReserveStatus), scales = "free") +
+  ggplot2::labs(title = NULL, subtitle = "Non-targeted",
+                x = "Survey Year", y = "Biomass (g/site)",
+                fill = "Common Name") +
+  Biomass_Summary_theme()
+```
+
+```{r Fish Non-targeted, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
+ggplot2::ggplot(filter(Fish_Biomass_Long, Targeted == "Targeted"), 
+                      aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
+  ggplot2::geom_area(position = "stack", stat = "smooth") + 
+  ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by) +
+  ggplot2::scale_y_continuous(limits = c(0, NA)) +
+  ggplot2::scale_fill_manual(values = Fish_Colors,
+                             guide = guide_legend(ncol = 6, title.hjust = .5, 
+                                                  title.position = "top", position = "bottom")) +
+  ggplot2::facet_grid(rows= vars(IslandName), cols = vars(ReserveStatus), scales = "free") +
+  ggplot2::labs(title = NULL, subtitle = "Targeted",
+                x = "Survey Year", y = "Biomass (g/site)",
+                fill = "Common Name") +
+  Biomass_Summary_theme()
+```
+
+## Ratio - Fish
+
+```{r Fish Biomass Ratio 1, warning=FALSE, message=FALSE, fig.height=11, fig.width=8.5}
+Booted_Fish_Ratios <- tibble(
+  CommonName = character(), SurveyYear = integer(),
+  Mean_Ratio = double(), CI_plus = double(), CI_minus = double())
+
+Fish_Biomass_Boot <- Fish_Biomass_Long %>%
+  dplyr::group_by(SiteName, IslandName, CommonName, SurveyYear, ReserveStatus) %>% 
+  dplyr::summarise(Mean_Biomass = sum(Mean_Biomass),
+                   ScientificName = ScientificName) %>% 
+  dplyr::mutate(Mean_Biomass = Mean_Biomass + mean(runif(1000, min = .99, max = 1 + 10^-100))) %>%
+  dplyr::ungroup() 
+
+for(y in unique(Fish_Biomass_Boot$SurveyYear)){
+  for(s in unique(Fish_Biomass_Boot$CommonName)){
+    d <- Fish_Biomass_Boot %>%
+      filter(CommonName %in% s, SurveyYear %in% y) 
+    output <- boot::boot(data = d, statistic = boot_ratio, R = 1000)
+    ci_boot <- boot::boot.ci(boot.out = output, conf = 0.95, type = "perc")
+    Booted_Fish_Ratios <- add_row(Booted_Fish_Ratios, CommonName = s, SurveyYear = y, Mean_Ratio = ci_boot$t0, CI_minus = ci_boot$percent[4], CI_plus = ci_boot$percent[5])
+  }
+}
+Fish_Trophic_Levels_Short <- Fish_Trophic_Levels %>%
+  dplyr::filter(CommonName %in% unique(Fish_Biomass_Long$CommonName)) %>% 
+  dplyr::select(ScientificName, CommonName, Broad_Trophic_Level, Targeted) 
+
+Booted_Fish_Ratios <- Booted_Fish_Ratios %>%
+  dplyr::left_join(Fish_Trophic_Levels_Short) %>% 
+  dplyr::arrange(desc(Targeted), Broad_Trophic_Level, CommonName) %>% 
+  dplyr::mutate(Targeted = factor(Targeted),
+                CommonName = factor(CommonName),
+                SurveyYear = factor(SurveyYear))
+i <- 1
+for (name in unique(Booted_Fish_Ratios$CommonName)) {
+  Fish_Ratios <- Booted_Fish_Ratios %>% 
+    dplyr::filter(CommonName == name) 
+  
+  p1  <- ggplot2::ggplot(data = Fish_Ratios,
+                         aes(x = SurveyYear, y = Mean_Ratio, color = Targeted)) +
+    ggplot2::geom_hline(aes(yintercept = 1)) +
+    geom_point(size = 3, stroke = 2, aes(shape = Targeted), fill = "blue") +
+    geom_errorbar(aes(x = SurveyYear, width = .5,
+                      ymin = Mean_Ratio - CI_minus,
+                      ymax = Mean_Ratio + CI_plus)) +
+    scale_color_manual(values = c("Targeted" = "firebrick", "Non-targeted" = "deepskyblue4")) +
+    scale_shape_manual(values = c("Targeted" = 5, "Non-targeted" = 5)) +
+    facet_grid(rows = vars(Targeted), space = "free", scales = "free") +
+    ggplot2::labs(title = paste(name, " (", Fish_Ratios$Broad_Trophic_Level, ")", sep = ""),
+         color = NULL, shape = NULL,
+         x = NULL, y = NULL) +
+    ggplot2::scale_y_continuous(trans = 'log10') +
+    coord_cartesian(ylim = c(NA, max(Fish_Ratios$Mean_Ratio) * 1.2)) +
+    Ratio_theme()
+  
+  unique_plotname <- paste("Fish.Ratio.", i, sep = "")
+  assign(unique_plotname, p1)
+  i <- i + 1
+}
+FR_Plot1 <- ggpubr::ggarrange(
+  Fish.Ratio.1, Fish.Ratio.2, Fish.Ratio.3, Fish.Ratio.4, Fish.Ratio.5, Fish.Ratio.6,
+  ncol = 1, align = "hv")
+FR_Plot2 <- ggpubr::ggarrange(
+  Fish.Ratio.7, Fish.Ratio.8, Fish.Ratio.9, Fish.Ratio.10, Fish.Ratio.11, Fish.Ratio.12,
+  ncol = 1, align = "hv")
+FR_Plot3 <- ggpubr::ggarrange(
+  Fish.Ratio.13, Fish.Ratio.14, Fish.Ratio.15, Fish.Ratio.16, Fish.Ratio.17,
+  ncol = 1, align = "hv")
+FR_Plot4 <- ggpubr::ggarrange(
+  Fish.Ratio.18, Fish.Ratio.19, Fish.Ratio.20, Fish.Ratio.21, Fish.Ratio.22, 
+  ncol = 1, align = "hv")
+
+FR_annotated1 <- ggpubr::annotate_figure(
+  FR_Plot1, 
+  left = ggpubr::text_grob(
+    "Biomass Ratio",
+    color = "black", size = 18, vjust = 1, hjust = .5, x = 0, rot = 90))
+FR_annotated2 <- ggpubr::annotate_figure(
+  FR_Plot2, 
+  left = ggpubr::text_grob(
+    "Biomass Ratio",
+    color = "black", size = 18, vjust = 1, hjust = .5, x = 0, rot = 90))
+FR_annotated3 <- ggpubr::annotate_figure(
+  FR_Plot3, 
+  left = ggpubr::text_grob(
+    "Biomass Ratio",
+    color = "black", size = 18, vjust = 1, hjust = .5, x = 0, rot = 90))
+FR_annotated4 <- ggpubr::annotate_figure(
+  FR_Plot4, 
+  left = ggpubr::text_grob(
+    "Biomass Ratio",
+    color = "black", size = 18, vjust = 1, hjust = .5, x = 0, rot = 90))
+
+print(FR_annotated1)
+```
+
+```{r Fish Biomass Ratio 2, warning=FALSE, message=FALSE, fig.height=11, fig.width=8.5}
+print(FR_annotated2)
+```
+
+```{r Fish Biomass Ratio 3, warning=FALSE, message=FALSE, fig.height=11, fig.width=8.5}
+print(FR_annotated3)
+```
+
+```{r Fish Biomass Ratio 4, warning=FALSE, message=FALSE, fig.height=11, fig.width=8.5}
+print(FR_annotated4)
+```
+
+## Ratio - Benthic
+
+```{r Benthic Biomass Ratio 1, warning=FALSE, message=FALSE, fig.height=11, fig.width=8.5}
+Benthic_Booted_Ratios <- tibble(
+  ScientificName = character(), SurveyYear = integer(), 
+  Mean_Ratio = double(), CI_plus = double(), CI_minus = double())
+
+Benthic_Biomass_Boot <- Benthic_Biomass_Long %>%
+  dplyr::group_by(SiteName, IslandName, ScientificName, ReserveStatus) %>%
+  dplyr::mutate(Mean_Biomass = Mean_Biomass + mean(runif(1000, min = .99, max = 1 + 10^-100)),
+                ScientificName = factor(ScientificName)) %>%
+  dplyr::ungroup()
+
+for(y in 2005:2019){
+  d <- Benthic_Biomass_Boot %>%
+    dplyr::filter(SurveyYear == y) %>%
+    droplevels()
+  for(s in levels(d$ScientificName)){
+    d2 <- d  %>%
+      dplyr::filter(ScientificName == s)
+    output <- boot::boot(data = d2, statistic = boot_ratio, R = 1000)
+    ci_boot <- boot::boot.ci(boot.out = output, conf = 0.95, type = "perc")
+    Benthic_Booted_Ratios <- Benthic_Booted_Ratios %>%
+      add_row(ScientificName = s, SurveyYear = y,
+              Mean_Ratio = ci_boot$t0,
+              CI_minus = ci_boot$percent[4],
+              CI_plus = ci_boot$percent[5])
+  }
+}
+Benthic_Targets <- Species_Info %>% 
+  dplyr::select(ScientificName, Targeted_Broad, Trophic_Broad) %>% 
+  dplyr::filter(ScientificName %in% unique(Benthic_Biomass_Boot$ScientificName)) %>% 
+  dplyr::distinct(ScientificName, .keep_all = TRUE)
+
+Benthic_Booted_Ratios <- Benthic_Booted_Ratios %>%
+  dplyr::left_join(Benthic_Targets) %>% 
+  dplyr::arrange(desc(Targeted_Broad), Trophic_Broad) %>% 
+  dplyr::mutate(Targeted_Broad = factor(Targeted_Broad),
+                SurveyYear = factor(SurveyYear))
+
+i <- 1
+for (name in unique(Benthic_Booted_Ratios$ScientificName)) {
+  Benthic_Ratios <- Benthic_Booted_Ratios %>% 
+    dplyr::filter(ScientificName == name) 
+  
+  p1  <- ggplot2::ggplot(data = Benthic_Ratios,
+                         aes(x = SurveyYear, y = Mean_Ratio, color = Targeted_Broad)) +
+    ggplot2::geom_hline(aes(yintercept = 1)) +
+    geom_point(size = 3, stroke = 2, aes(shape = Targeted_Broad), fill = "blue") +
+    geom_errorbar(aes(x = SurveyYear, width = .5,
+                      ymin = Mean_Ratio - CI_minus,
+                      ymax = Mean_Ratio + CI_plus)) +
+    scale_color_manual(values = c("Targeted" = "firebrick", "Non-targeted" = "deepskyblue4")) +
+    scale_shape_manual(values = c("Targeted" = 5, "Non-targeted" = 5)) +
+    facet_grid(rows = vars(Targeted_Broad), space = "free", scales = "free") +
+    ggplot2::labs(title = paste(name, " (", Benthic_Ratios$Trophic_Broad, ")", sep = ""),
+         color = NULL, shape = NULL,
+         x = NULL, y = NULL) +
+    ggplot2::scale_y_continuous(trans = 'log10') +
+    coord_cartesian(ylim = c(min(Benthic_Ratios$Mean_Ratio) * .5, 
+                             max(Benthic_Ratios$Mean_Ratio) * 1.5)) +
+    Ratio_theme()
+  
+  unique_plotname <- paste("Benthic.Ratio.", i, sep = "")
+  assign(unique_plotname, p1)
+  i <- i + 1
+}
+BR_Plot1 <- ggpubr::ggarrange(
+  Benthic.Ratio.1, Benthic.Ratio.2, Benthic.Ratio.3, Benthic.Ratio.4, Benthic.Ratio.5,
+  ncol = 1, align = "hv")
+BR_Plot2 <- ggpubr::ggarrange(
+  Benthic.Ratio.6, Benthic.Ratio.7, Benthic.Ratio.8, Benthic.Ratio.9, Benthic.Ratio.10,
+  ncol = 1, align = "hv")
+BR_Plot3 <- ggpubr::ggarrange(
+  Benthic.Ratio.11, Benthic.Ratio.12, Benthic.Ratio.13, Benthic.Ratio.14, Benthic.Ratio.15, 
+  ncol = 1, align = "hv")
+
+BR_annotated1 <- ggpubr::annotate_figure(
+  BR_Plot1, 
+  left = ggpubr::text_grob(
+    "Biomass Ratio",
+    color = "black", size = 18, vjust = 1, hjust = .5, x = 0, rot = 90))
+BR_annotated2 <- ggpubr::annotate_figure(
+  BR_Plot2, 
+  left = ggpubr::text_grob(
+    "Biomass Ratio",
+    color = "black", size = 18, vjust = 1, hjust = .5, x = 0, rot = 90))
+BR_annotated3 <- ggpubr::annotate_figure(
+  BR_Plot3,
+  left = ggpubr::text_grob(
+    "Biomass Ratio",
+    color = "black", size = 18, vjust = 1, hjust = .5, x = 0, rot = 90))
+
+print(BR_annotated1)
+```
+
+```{r Benthic Biomass Ratio 2, warning=FALSE, message=FALSE, fig.height=11, fig.width=8.5}
+print(BR_annotated2)
+```
+
+```{r Benthic Biomass Ratio 3, warning=FALSE, message=FALSE, fig.height=11, fig.width=8.5}
+print(BR_annotated3)
+```
+
+```{r Pisaster giganteus Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(pisgig, caption= "*Pisaster giganteus* GLMM results.")
+```
+
+## Pis Gig
+
+```{r Pisaster giganteus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p16 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Pisaster_giganteus, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(limits= c(0,NA), expand= c(0,0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p17 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Pisaster_giganteus, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(limits= c(0,NA), expand= c(0,0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p18 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Pisaster_giganteus, color = IslandName, 
+                           linetype = ReserveStatus), se=FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept=0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Pisgig_Biomass_Plot <- ggpubr::ggarrange(p16, p17, p18, ncol = 1, align = "v")
+Pisgig_Biomass_annotated <- ggpubr::annotate_figure(
+  Pisgig_Biomass_Plot,
+  left = text_grob(paste("Pisaster giganteus Biomass (g/m²)"),
+                   color = "black", rot = 90, size = 12))
+print(Pisgig_Biomass_annotated)
+``` 
+
+```{r Pisaster giganteus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+pisaster <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Pisaster giganteus") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(pisaster, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1,
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = pisaster, size = 1,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1983-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+pisaster_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+pisaster_Orig16_annotated <- ggpubr::annotate_figure(
+  pisaster_Orig16_Plot,
+  left = text_grob("Pisaster giganteus biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(pisaster_Orig16_annotated)
+```
+
+## Cen Cor
+
+```{r Centrostephanus_coronatus Densities Summary Tables (GLMM), results = 'asis'}
+knitr::kable(cencor, caption= "Model Formula: Coronado urchin density = Reserve Status * Island + ONI + (1 | Survey Year)")
+```
+
+```{r Centrostephanus_coronatus Density Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p1 <- ggplot2::ggplot(Benthic_Densities_Wide, 
+                       aes(x = Date, y = Centrostephanus_coronatus, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(limits= c(0,NA), expand= c(0,0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p2 <- ggplot2::ggplot(Benthic_Densities_Wide,
+                       aes(x = Date, y = Centrostephanus_coronatus, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(limits= c(0,NA), expand= c(0,0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p3 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Densities_Wide, 
+                       aes(x = Date, y = Centrostephanus_coronatus, color = IslandName, 
+                           linetype = ReserveStatus), se=FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept=0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+cencor_Density_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v")
+cencor_Density_annotated <- ggpubr::annotate_figure(
+  cencor_Density_Plot,
+  left = text_grob(paste("Centrostephanus coronatus density (#/m²)"), 
+                   color = "black", rot = 90, size = 12))
+print(cencor_Density_annotated)
+``` 
+
+```{r Centrostephanus coronatus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+coronado <- Density_Orginal_16 %>% 
+  dplyr::filter(ScientificName == "Centrostephanus coronatus") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(coronado, aes(x = Date, y = Mean_Density, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1,
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = coronado, size = 1,
+              aes(x = Date, y = Mean_Density, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1996-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+coronado_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+coronado_Orig16_annotated <- ggpubr::annotate_figure(
+  coronado_Orig16_Plot,
+  left = text_grob("Centrostephanus coronatus Density (#/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(coronado_Orig16_annotated)
+```
+
+## Hal Ruf
+
+```{r Haliotis rufescens Biomass Summary Tables (GLMM), results = 'asis'}
+knitr::kable(halruf, caption= "Model Formula: Red abalone Biomass = Reserve Status * Island + ONI + (1 | Survey Year)")
+```
+
+```{r Haliotis rufescens Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+p25 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Haliotis_rufescens, linetype= ReserveStatus)) +
+  ggplot2::geom_smooth(size = 1, aes(color = ReserveStatus)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(limits= c(0,NA), expand= c(0,0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                linetype = "Reserve Status",
+                color = "Reserve Status") +
+  timeseries_top_theme()
+
+p26 <- ggplot2::ggplot(Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Haliotis_rufescens, color = IslandName)) +
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(limits= c(0,NA), expand= c(0,0), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::labs(x = NULL, y = NULL,
+                color = "Island") +
+  timeseries_top_theme()
+
+p27 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_2005, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = Benthic_Biomass_Wide, 
+                       aes(x = Date, y = Haliotis_rufescens, color = IslandName, 
+                           linetype = ReserveStatus), se=FALSE) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0,0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::geom_hline(aes(yintercept=0)) +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(x = "Survey Year", y = NULL,
+                color = "Island",
+                fill = "Oceanic Ni\u00f1o Index",
+                linetype = "Reserve Status") +
+  timeseries_bottom_theme()
+Halruf_Biomass_Plot <- ggpubr::ggarrange(p25, p26, p27, ncol = 1, align = "v")
+Halruf_Biomass_annotated <- ggpubr::annotate_figure(
+  Halruf_Biomass_Plot,
+  left = text_grob(paste("Haliotis rufescens Biomass (g/m²)"),
+                   color = "black", rot = 90, size = 12))
+print(Halruf_Biomass_annotated)
+``` 
+
+```{r Haliotis rufescens original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
+redabs <- Original_16_Biomass_Data %>% 
+  dplyr::filter(ScientificName == "Haliotis rufescens") %>%
+  dplyr::mutate(IslandName = gsub(" Island", "", IslandName)) %>%
+  dplyr::mutate(IslandName = factor(IslandName, levels= IslandLevels)) %>%
+  dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 1, 1)))
+
+p1 <- ggplot2::ggplot(redabs, aes(x = Date, y = Mean_Biomass, color = ReserveYear, linetype = ReserveYear)) + 
+  ggplot2::geom_smooth(size = 1) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1,
+                 hjust = 1, label = "New MPAs Created"), color = "black") +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Reserve Year", linetype = "Reserve Year",
+       x = NULL, y = NULL) +
+  Original_16_top_theme()
+
+p2 <- ggplot2::ggplot() +
+  ggplot2::geom_rect(data = SST_Index_1982, 
+            aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+  ggplot2::scale_fill_viridis_c(
+    option = "plasma",
+    guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                           order = 3, barheight = unit(.2, "cm"))) +
+  ggplot2::geom_smooth(data = redabs, size = 1,
+              aes(x = Date, y = Mean_Biomass, color = IslandName)) +
+  ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+  ggplot2::geom_hline(aes(yintercept = 0)) +
+  ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0),
+                        limits = c(base::as.Date("1983-01-01"), NA)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                              limits = c(0, NA), oob = squish) +
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::guides(color = guide_legend(order = 1), 
+                  linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+  ggplot2::labs(title = NULL, subtitle = NULL,
+       color = "Island",
+       x = "Survey Year", y = NULL,
+       fill = "Oceanic Ni\u00f1o Index") +
+  Original_16_bottom_theme()
+
+redabs_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+redabs_Orig16_annotated <- ggpubr::annotate_figure(
+  redabs_Orig16_Plot,
+  left = text_grob("Haliotis rufescens biomass (g/m²)", 
+                   color = "black", rot = 90, size = 12))
+print(redabs_Orig16_annotated)
+```
+
+## Tables and Equations
+
+```{r RF VI Table, results="asis", fig.width=5}
+RF_VI <- RF_Importance %>% 
+  dplyr::select(ScientificName, CommonName, Data_Type, 
+                Targeted_Broad, MeanDecreaseAccuracy, MeanDecreaseGini) 
+knitr::kable(RF_VI)
+```
+
+```{r Heat Map Summary and Cross Reference Tables}
+heat_table_summary <- heat_map %>% 
+  tidyr::drop_na() %>% 
+  dplyr::group_by(ScientificName, Year) %>%
+  dplyr::mutate(Distribution = n(),
+                Years = "Years") %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(Distribution > 1) %>%
+  dplyr::distinct(ScientificName, Year, Years) %>%
+  dplyr::select(ScientificName, Year, Years) %>%
+  dplyr::arrange(ScientificName, Year, Years)  %>%
+  tidyr::pivot_wider(names_from = Years, values_from = Year, values_fn = list)
+
+knitr::kable(heat_table_summary)
+```
+
+```{r Sites, results="asis", fig.width=5}
+knitr::kable(Site_Table)
+```
+
+```{r Species on Protocols, results="asis"}
+knitr::kable(Species_Protocol_Table)
+```
+
+```{r Protocols, results="asis", fig.width=7}
+knitr::kable(Protocol_Table)
+```
+
+```{r Fish Biomass Summary Equations, results="asis"}
+Fish_Biomass_Coversions_Latex %>% 
+  dplyr::select(ScientificName, CommonName, WL_Equation) %>% 
+  knitr::kable()
+```
+
+```{r Fish Biomass Conversions, results="asis"}
+Fish_Biomass_Coversions_Latex %>% 
+  dplyr::select(ScientificName, CommonName, WL_a, WL_a_conversion, WL_b,
+                WL_L_units_conversion, WL_Equation, WL_Reference, 
+                WL_L_units_conversion_reference)  %>% 
+  knitr::kable()
+```
+
+```{r Fish regression table, results="asis"}
+knitr::kable(Fish_Regression_Table)
+```
+
+```{r Benthic Biomass Summary Equations, results="asis"}
+Benthic_Biomass_Coversions_Latex %>% 
+  dplyr::select(ScientificName, CommonName, LW_Equation) %>% 
+  dplyr::filter(CommonName %in% Benthic_Biomass_Species) %>% 
+  knitr::kable()
+```
+
+```{r Benthic Biomass Full, results="asis"}
+Benthic_Biomass_Coversions_Latex %>% 
+  dplyr::filter(CommonName %in% Benthic_Biomass_Species) %>% 
+  dplyr::select(ScientificName, CommonName, Independent_variable,
+                a, b, LW_Equation, r2, p, Source) %>% 
+  knitr::kable()
+```
+
+```{r Benthic regression table, results="asis"}
+knitr::kable(Benthic_Regression_Table)
+```
+
+```{r Gorgonian regression table, results="asis"}
+knitr::kable(Gorgonian_Regression_Table)
+```
