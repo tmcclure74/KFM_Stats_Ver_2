@@ -475,6 +475,9 @@ Export_END_Year <- 2019
       SE = round(SD / sqrt(Area_Surveyed), 4)) |> 
     dplyr::ungroup() |>  
     dplyr::distinct(SiteCode, ScientificName, CommonName, SurveyYear, Percent_Cover, .keep_all = TRUE) |>
+    dplyr::left_join(
+      Site_Info |>
+        dplyr::select(SiteName, ReserveYear)) |> 
     arrow::write_feather("Tidy_Data/RPC_Cover.feather")
   
   # unique(RPC_Cover$CommonName)
@@ -563,7 +566,7 @@ Export_END_Year <- 2019
   { # Simpson's Index  ----
     RPC_Cover_Wide <- RPC_Cover |>
       dplyr::select(-SE, -SD, -CommonName, -Date, -Species,
-                    -Area_Surveyed, -Total_Count) |>
+                    -Area_Surveyed, -Total_Count, -ReserveYear) |>
       dplyr::filter(!ScientificName %in% c("Rock", "Sand", "Cobble", "Bare Substrate")) |>
       tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
                          values_from = Percent_Cover, values_fill = 0)
@@ -1492,13 +1495,10 @@ Export_END_Year <- 2019
 }
 
 { # Indicator Species Analysis   ----
-  data(wetland)
-  groups = c(rep(1, 17), rep(2, 14), rep(3,10))
-  indval = multipatt(wetland, groups,control = how(nperm=999))
   
   multipatt_island_list <- c(rep("AN", 3), rep("SB", 3), rep("SC", 3), rep("SR", 3))
   
-  Count_Wide <- Density_CSV |> 
+  Count_Wide <- arrow::read_feather("Tidy_Data/Density.feather") |> 
     dplyr::filter(Survey_Type != "VFT", SurveyYear > 2004, Reference == TRUE,
                   !ScientificName %in% c(
                     "Alloclinus holderi", "Coryphopterus nicholsi", "Lythrypnus dalli") | Survey_Type == "1 m² quads",
@@ -1523,32 +1523,60 @@ Export_END_Year <- 2019
     dplyr::rename_with(~ base::gsub("5", "", .)) |> 
     dplyr::rename_with(~ base::gsub("[()]", "", .))
   
-  df <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
-    dplyr::filter(Reference == TRUE, SurveyYear > 2004) |>
-    dplyr::mutate(SurveyYear = factor(SurveyYear),
-                  IslandCode = factor(IslandCode, levels = Island_Code_Levels),
-                  ReserveStatus = factor(ReserveStatus)) 
-  
   ISA <- 
     lapply(
-      unique(df$ReserveStatus), function(rs){
+      unique(Count_Wide$ReserveStatus), function(rs){
         lapply(
-          unique(df$SurveyYear), function(yr){
-            df |>
+          unique(Count_Wide$SurveyYear), function(yr){
+            Count_Wide |>
               dplyr::filter(ReserveStatus %in% rs) |>
               dplyr::filter(SurveyYear %in% yr) |>
               dplyr::select(-SiteNumber,-IslandCode, -IslandName, -SiteCode, -SiteName, - SurveyYear, - ReserveStatus) |>
-              indicspecies::multipatt(multipatt_island_list, func = "r.g", control = how(nperm = 1000)) |> 
-              .$sign |>
+              indicspecies::multipatt(multipatt_island_list, func = "r.g", control = how(nperm = 1000)) |>  
+              base::getElement('sign') |> 
               tibble::rownames_to_column("Common_Name") |>
               dplyr::mutate(Year = yr, ReserveStatus = rs)
           })
       })
+  
   ISA_df <- bind_rows(ISA) |>
-    dplyr::filter(p.value < 0.05)
+    dplyr::filter(p.value < 0.05) |> 
+    dplyr::rename(`Santa Rosa` = s.SR, `Santa Cruz` = s.SC, Anacapa = s.AN, `Santa Barbara` = s.SB) |> 
+    tidyr::pivot_longer(cols = c(`Santa Rosa`, `Santa Cruz`, Anacapa, `Santa Barbara`), names_to = "IslandName", values_to = "isl_values") |> 
+    dplyr::filter(isl_values > 0)
+  
+  # df <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
+  #   dplyr::filter(Reference == TRUE, SurveyYear > 2004) |>
+  #   dplyr::mutate(SurveyYear = factor(SurveyYear),
+  #                 IslandCode = factor(IslandCode, levels = Island_Code_Levels),
+  #                 ReserveStatus = factor(ReserveStatus)) 
+  
+  # ISA <- 
+  #   lapply(
+  #     unique(df$ReserveStatus), function(rs){
+  #       lapply(
+  #         unique(df$SurveyYear), function(yr){
+  #           df |>
+  #             dplyr::filter(ReserveStatus %in% rs) |>
+  #             dplyr::filter(SurveyYear %in% yr) |>
+  #             dplyr::select(-SiteNumber,-IslandCode, -IslandName, -SiteCode, -SiteName, - SurveyYear, - ReserveStatus) |>
+  #             indicspecies::multipatt(multipatt_island_list, func = "r.g", control = how(nperm = 1000)) |>  
+  #             base::getElement('sign') |> 
+  #             tibble::rownames_to_column("Common_Name") |>
+  #             dplyr::mutate(Year = yr, ReserveStatus = rs)
+  #         })
+  #     })
+  # 
+  # ISA_df <- bind_rows(ISA) |>
+  #   dplyr::filter(p.value < 0.05) |> 
+  #   dplyr::rename(`Santa Rosa` = s.SR, `Santa Cruz` = s.SC, Anacapa = s.AN, `Santa Barbara` = s.SB) |> 
+  #   tidyr::pivot_longer(cols = c(`Santa Rosa`, `Santa Cruz`, Anacapa, `Santa Barbara`), names_to = "IslandName", values_to = "isl_values") |> 
+  #   dplyr::filter(isl_values > 0)
 
  
 }
+
+
 
 
 

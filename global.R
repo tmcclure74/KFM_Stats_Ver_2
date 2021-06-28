@@ -422,7 +422,7 @@ Year_to_Filter_Data_by <- 2019
         legend.background = element_rect(size = unit(5, "cm")),
         legend.title = element_text(size = 12, color = "black"),
         legend.text = element_text(size = 11, colour = "black"),
-        panel.grid.major = element_line(),
+        # panel.grid.major = element_line(),
         axis.title = element_text(hjust = .5, size = 12),
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12, color="black"),
         axis.text.y = element_text(size = 12, color="black"),
@@ -522,7 +522,7 @@ Year_to_Filter_Data_by <- 2019
                                   hjust = 1, label = "Dive Fishery Begins"), color = "black") +
           ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
           ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
-                                  hjust = 1, label = "New MPAs Created"), color = "black") +
+                                  hjust = 1, label = "MPAs Created (2003)"), color = "black") +
           ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
           ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
                                       limits = c(0, NA), oob = squish) +
@@ -563,7 +563,7 @@ Year_to_Filter_Data_by <- 2019
           ggplot2::geom_smooth(size = 1, method = 'loess', formula = 'y~x') +
           ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
           ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
-                                  hjust = 1, label = "New MPAs Created"), color = "black") +
+                                  hjust = 1, label = "MPAs Created (2003)"), color = "black") +
           ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
           ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
                                       limits = c(0, NA), oob = squish) +
@@ -675,7 +675,7 @@ Year_to_Filter_Data_by <- 2019
         ggplot2::geom_smooth(size = 1, method = 'loess', formula = 'y~x') +
         ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
         ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
-                                hjust = 1, label = "New MPAs Created"), color = "black") +
+                                hjust = 1, label = "MPAs Created (2003)"), color = "black") +
         ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
         ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
                                     limits = c(0, NA), oob = squish) +
@@ -714,6 +714,114 @@ Year_to_Filter_Data_by <- 2019
         left = text_grob(paste(DF$ScientificName, "biomass (#/m²)"), 
                          color = "black", rot = 90, size = 12))
       print(Orig16_Biomass_Annotated)
+    }
+  }
+  
+  { # Percent Cover Plot  ----
+    Percent_Cover_Plot <- function(Sci_Name) {
+      DF <- RPC |> 
+        dplyr::filter(ScientificName == Sci_Name)
+      
+      p1 <- ggplot2::ggplot(data = DF, 
+                            aes(x = Date, y = Percent_Cover, linetype = ReserveStatus, color = ReserveStatus)) +
+        ggplot2::geom_smooth(size = 1, method = 'loess', formula = 'y~x') +
+        ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+        ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+        ggplot2::scale_color_viridis_d() +
+        ggplot2::labs(x = NULL, y = NULL, linetype = "Reserve Status",
+                      color = "Reserve Status") +
+        timeseries_top_theme()
+      
+      p2 <- ggplot2::ggplot(data = DF, 
+                            aes(x = Date, y = Percent_Cover, color = IslandName)) +
+        ggplot2::geom_smooth(size = 1, method = 'loess', formula = 'y~x') +
+        ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+        ggplot2::scale_y_continuous(limits = c(0, NA), expand = c(0, 0), oob = squish) +
+        ggplot2::scale_color_viridis_d() +
+        ggplot2::labs(x = NULL, y = NULL, color = "Island") +
+        timeseries_top_theme()
+      
+      p3 <- ggplot2::ggplot() +
+        ggplot2::geom_rect(data = SST_Index_2005, 
+                           aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+        ggplot2::scale_fill_viridis_c(
+          option = "plasma",
+          guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                                 order = 3, barheight = unit(.2, "cm"))) +
+        ggplot2::geom_smooth(data = DF, method = 'loess', formula = 'y~x',
+                             aes(x = Date, y = Percent_Cover, color = IslandName, 
+                                 linetype = ReserveStatus), se = FALSE) +
+        ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+        ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                                    limits = c(0, NA), oob = squish) +
+        ggplot2::scale_color_viridis_d() +
+        ggplot2::geom_hline(aes(yintercept = 0)) +
+        ggplot2::guides(color = guide_legend(order = 1), 
+                        linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+        ggplot2::labs(x = "Survey Year", y = NULL,
+                      color = "Island",
+                      fill = "Oceanic Ni\u00f1o Index",
+                      linetype = "Reserve Status") +
+        timeseries_bottom_theme()
+      cover_Plot <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "v", heights = c(.8, .8, 1))
+      cover_annotated <- ggpubr::annotate_figure(
+        cover_Plot,
+        left = text_grob(paste(Sci_Name, " percent cover", sep = ""),
+                         color = "black", rot = 90, size = 12))
+      print(cover_annotated)
+    }
+  }
+  
+  { # Percent Cover Original 16 Plot  ----
+    Percent_Cover_Plot <- function(Sci_Name, SST_Year) {
+      DF <- RPC_Original_16 |> 
+        dplyr::filter(ScientificName == Sci_Name)
+      
+      p1 <- ggplot2::ggplot(data = DF, aes(x = Date, y = Percent_Cover, color = ReserveYear, linetype = ReserveYear)) + 
+        ggplot2::geom_smooth(size = 1, method = 'loess', formula = 'y~x') +
+        ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+        ggplot2::geom_label(aes(x = as.Date("2003-01-01"), y = Inf, vjust = 1, 
+                                hjust = 1, label = "MPAs Created (2003)"), color = "black") +
+        ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+        ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .1)),
+                                    limits = c(0, NA), oob = squish) +
+        ggplot2::labs(title = NULL, subtitle = NULL,
+                      color = "Reserve Year", linetype = "Reserve Year",
+                      x = NULL, y = NULL) +
+        Original_16_top_theme()
+      
+      p2 <- ggplot2::ggplot() +
+        ggplot2::geom_rect(data = dplyr::filter(SST_Index, Date > as.Date(paste(SST_Year, "-06-30", sep = ""))),
+                           aes(xmin = DateStart, xmax = DateEnd, ymin = -Inf, ymax = 0, fill = ONI_ANOM)) +
+        ggplot2::scale_fill_viridis_c(
+          option = "plasma",
+          guide = guide_colorbar(direction = "horizontal", title.position = "top",
+                                 order = 3, barheight = unit(.2, "cm"))) +
+        ggplot2::geom_smooth(data = DF, size = 1, method = 'loess', formula = 'y~x', se = F,
+                             aes(x = Date, y = Percent_Cover, 
+                                 linetype = ReserveStatus,
+                                 color = IslandName)) +
+        ggplot2::geom_vline(aes(xintercept = as.Date("2003-01-01")), size = 1) +
+        ggplot2::geom_hline(aes(yintercept = 0)) +
+        ggplot2::scale_y_continuous(expand = expansion(mult = c(.1, 0)),
+                                    limits = c(0, NA), oob = squish) +
+        ggplot2::scale_x_date(date_labels = "%Y", date_breaks = "year", expand = c(0, 0)) +
+        ggplot2::scale_color_viridis_d() +
+        ggplot2::guides(color = guide_legend(order = 1), 
+                        linetype = guide_legend(order = 2, override.aes = list(col = 'black'))) +
+        ggplot2::labs(title = NULL, subtitle = NULL,
+                      color = "Island",
+                      x = "Survey Year", y = NULL,
+                      fill = "Oceanic Ni\u00f1o Index") +
+        Original_16_bottom_theme() +
+        theme(panel.background = element_rect(fill = 'gray'))
+      
+      Cover_Orig16_Plot <- ggpubr::ggarrange(p1, p2, ncol = 1, align = "v", heights = c(.8, 1))
+      Cover_Orig16_annotated <- ggpubr::annotate_figure(
+        Cover_Orig16_Plot,
+        left = text_grob(paste(Sci_Name, " percent cover", sep = ""),
+                         color = "black", rot = 90, size = 12))
+      print(Cover_Orig16_annotated)
     }
   }
   
@@ -760,14 +868,14 @@ Year_to_Filter_Data_by <- 2019
   partial_df <- arrow::read_feather("Tidy_Data/PDP_data.feather")
 }
 
-{ # Density and Biomass Data    ----
+{ # Density/Biomass/RPC Data    ----
   Density <- arrow::read_feather("Tidy_Data/Density.feather") |> 
     dplyr::mutate(IslandName = gsub(" Island", "", IslandName),
                   IslandName = factor(IslandName, levels = Island_Levels_Short)) |> 
     dplyr::filter(Reference == TRUE, SurveyYear > 2004) |>
     dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 7, 1)))
   
-  Density_Orginal_16 <- arrow::read_feather("Tidy_Data/Density.feather") |> 
+  Density_Orginal_16 <- arrow::read_feather("Tidy_Data/Density.feather") |>  
     dplyr::mutate(IslandName = gsub(" Island", "", IslandName),
                   IslandName = factor(IslandName, levels = Island_Levels_Short)) |> 
     dplyr::filter(SiteNumber %in% 1:16) |>
@@ -784,6 +892,25 @@ Year_to_Filter_Data_by <- 2019
                   IslandName = factor(IslandName, levels = Island_Levels_Short)) |> 
     dplyr::filter(SiteNumber %in% 1:16) |>
     dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 7, 1)))
+  
+  RPC <- arrow::read_feather("Tidy_Data/RPC_Cover.feather") |> 
+    dplyr::mutate(IslandName = gsub(" Island", "", IslandName),
+                  IslandName = factor(IslandName, levels = Island_Levels_Short)) |> 
+    dplyr::filter(Reference == TRUE, SurveyYear > 2004) |>
+    dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 7, 1)))
+  
+  RPC_Original_16 <- arrow::read_feather("Tidy_Data/RPC_Cover.feather") |> 
+    dplyr::mutate(IslandName = gsub(" Island", "", IslandName),
+                  IslandName = factor(IslandName, levels = Island_Levels_Short)) |> 
+    dplyr::filter(SiteNumber %in% 1:16) |>
+    dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 7, 1)),
+                  ReserveStatus = case_when(
+                    SurveyYear < 2003 & SiteCode == "LC" ~ "Inside",
+                    SurveyYear < 2003 & SiteCode == "CC" ~ "Inside",
+                    SurveyYear < 2003 ~ "Outside",
+                    TRUE ~ ReserveStatus))
+  
+   
   
   All_Ratios <- arrow::read_feather("Tidy_Data/Ratios.feather")
 }
