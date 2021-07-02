@@ -94,7 +94,7 @@ Export_END_Year <- 2019
   Island_Code_Levels <- c("SR", "SC", "AN", "SB")
 }
 
-{ # SST Anomaly Index (ONI and PDO)   ----
+{ # Water Temperature Anomaly Indicies (KFM, ONI, and PDO)   ----
   
   { # Oceanic Nino Index  ----
     oni <- read.table( # Read in  ONI to be added to all data
@@ -132,10 +132,80 @@ Export_END_Year <- 2019
     SST_Anomaly_Index_Mean <- SST_Anomaly_Index |>
       dplyr::filter(SurveyYear > 2004, Date < base::as.Date(glue("{Export_END_Year + 1}-1-1"))) |> 
       dplyr::group_by(SurveyYear)  |> 
-      dplyr::mutate(Mean_ONI_Anom = mean(ONI_ANOM),
-                    Mean_PDO_Anom = mean(PDO_ANOM)) |> 
-      dplyr::select(SurveyYear, Mean_ONI_Anom, Mean_PDO_Anom) |> 
-      dplyr::distinct(SurveyYear, .keep_all = TRUE)
+      dplyr::summarise(Mean_ONI_Anom = mean(ONI_ANOM), Mean_PDO_Anom = mean(PDO_ANOM)) 
+    
+  }
+  
+  { # Delayed ONI and PDO   -----
+    
+    # SST_Anomaly_Index_Lag <- SST_Anomaly_Index |>
+    #   dplyr::mutate(ONI_Lag_1 = dplyr::lag(ONI_ANOM, n = 1),
+    #                 ONI_Lag_2 = dplyr::lag(ONI_ANOM, n = 2),
+    #                 ONI_Lag_3 = dplyr::lag(ONI_ANOM, n = 3),
+    #                 PDO_Lag_1 = dplyr::lag(ONI_ANOM, n = 1),
+    #                 PDO_Lag_2 = dplyr::lag(ONI_ANOM, n = 2),
+    #                 PDO_Lag_3 = dplyr::lag(ONI_ANOM, n = 3)) |>
+    #   dplyr::group_by(SurveyYear)  |>
+    #   dplyr::summarise(Mean_ONI_Anom = mean(ONI_ANOM),
+    #                    Mean_ONI_Anom_Lag_1 = mean(ONI_Lag_1),
+    #                    Mean_ONI_Anom_Lag_2 = mean(ONI_Lag_2),
+    #                    Mean_ONI_Anom_Lag_3 = mean(ONI_Lag_3),
+    #                    Mean_PDO_Anom = mean(PDO_ANOM),
+    #                    Mean_PDO_Anom_Lag_1 = mean(PDO_Lag_1),
+    #                    Mean_PDO_Anom_Lag_2 = mean(PDO_Lag_2),
+    #                    Mean_PDO_Anom_Lag_3 = mean(PDO_Lag_3)) |>
+    #   dplyr::filter(SurveyYear > 2004, SurveyYear < Export_END_Year + 1)
+    
+  }
+  
+  { # Benthic Temperature   -----
+    
+    # Temp_Anom_Table <- readr::read_csv(
+    #   glue::glue("Raw_Data/KFM_Temperature_RawData_1994-{Export_END_Year}.txt")) %>%
+    #   dplyr::filter(IslandCode != "CL", Site_Number < 38, !base::is.na(Temp_C)) %>%
+    #   dplyr::select(-Date, -Time) %>%
+    #   tidyr::separate(DateTime, c('Date','Time'),' ') %>%
+    #   dplyr::mutate(Date = lubridate::mdy(Date),
+    #                 Month = lubridate::month(Date, label = TRUE)) %>%
+    #   dplyr::select(-Site_Number, -Time) %>%
+    #   dplyr::group_by(Month, Year, IslandCode) %>%
+    #   dplyr::summarise(Monthly_Mean = mean(Temp_C)) %>%
+    #   dplyr::ungroup() %>%
+    #   dplyr::group_by(Month, IslandCode) %>%
+    #   dplyr::mutate(Range = zoo::rollmean(Monthly_Mean, k = 10,  fill = NA, align = "right"),
+    #                 Monthly_Anom = Monthly_Mean-Range) %>%
+    #   dplyr::ungroup() %>%
+    #   arrow::write_feather("Tidy_Data/KFM_Temp_Anomaly.feather")
+    
+    Annual_Temp_Anom <- arrow::read_feather("Tidy_Data/KFM_Temp_Anomaly.feather") %>%
+      dplyr::group_by(Year, IslandCode) %>%
+      dplyr::summarise(Mean_KFM_Anom = mean(Monthly_Anom)) %>%
+      dplyr::filter(Year > 2004) %>%
+      dplyr::rename(SurveyYear = Year) %>%
+      dplyr::left_join(
+        SST_Anomaly_Index_Mean %>%
+          dplyr::distinct(Mean_ONI_Anom, Mean_PDO_Anom, SurveyYear),
+        by = "SurveyYear") %>%
+      dplyr::ungroup() 
+    
+    #Regressions based on each island - most correlated are SR and SM
+    summary(lm(Mean_ONI_Anom ~ Mean_KFM_Anom, data = (Annual_Temp_Anom %>% filter(IslandCode == "SB"))))   
+    summary(lm(Mean_ONI_Anom ~ Mean_KFM_Anom, data = (Annual_Temp_Anom %>% filter(IslandCode == "AN"))))
+    summary(lm(Mean_ONI_Anom ~ Mean_KFM_Anom, data = (Annual_Temp_Anom %>% filter(IslandCode == "SC"))))
+    summary(lm(Mean_ONI_Anom ~ Mean_KFM_Anom, data = (Annual_Temp_Anom %>% filter(IslandCode == "SR"))))
+    summary(lm(Mean_ONI_Anom ~ Mean_KFM_Anom, data = (Annual_Temp_Anom %>% filter(IslandCode == "SM"))))
+    
+    summary(lm(Mean_ONI_Anom ~ Annual_Anom_All, 
+               data = (Annual_Temp_Anom %>%
+                         dplyr::group_by(SurveyYear, Mean_ONI_Anom) %>%
+                         dplyr::summarise(Annual_Anom_All = mean(Mean_KFM_Anom)))))
+    
+    car::Anova(
+      test = "F",
+      lme4::lmer(
+        data = Annual_Temp_Anom,
+        Mean_KFM_Anom ~ Mean_ONI_Anom + (1 | SurveyYear))) 
+    #interesting that this GLMM gives essentially the same p-val
     
   }
   
@@ -183,6 +253,7 @@ Export_END_Year <- 2019
       dplyr::distinct(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, ScientificName, CommonName, SurveyYear, 
                       Total_Count, Mean_Density, SD, SE, Area_Surveyed, .keep_all = TRUE) |> 
       dplyr::filter(ScientificName != "Pisaster giganteus" | SurveyYear < 1996,
+                    # ScientificName != "Macrocystis pyrifera" | SurveyYear < 1996) |>
                     CommonName != "giant kelp, adult (>1m)" | SurveyYear < 1996) |>
       dplyr::arrange(SiteNumber, SurveyYear, ScientificName) |>
       dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear, Date,
@@ -254,9 +325,7 @@ Export_END_Year <- 2019
       tidyr::separate(SurveyDate, c('Date','Time'),' ') |>
       dplyr::mutate(Date = lubridate::mdy(Date)) |>
       tidyr::pivot_longer(cols = c(CountA, CountB), values_to = "Count") |> 
-      dplyr::filter(!is.na(Count), 
-                    !is.na(CommonName),
-                    ScientificName != "Sargassum horneri") |> 
+      dplyr::filter(!is.na(Count), !is.na(CommonName), ScientificName != "Sargassum horneri") |> 
       dplyr::group_by(SiteNumber, ScientificName, CommonName, SurveyYear, TransectNumber) |>
       dplyr::mutate(Count = sum(Count, na.rm = TRUE)) |>
       dplyr::ungroup() |>
@@ -408,7 +477,7 @@ Export_END_Year <- 2019
         Species_Info |>
           dplyr::select(CommonName, Classification))
     
-    Density_CSV <- Benthic_Density_CSV |> 
+    Density <- Benthic_Density_CSV |> 
       base::rbind(Fish_Density_CSV) |>
       arrow::write_feather("Tidy_Data/Density.feather")
   }
@@ -480,9 +549,6 @@ Export_END_Year <- 2019
         dplyr::select(SiteName, ReserveYear)) |> 
     arrow::write_feather("Tidy_Data/RPC_Cover.feather")
   
-  # unique(RPC_Cover$CommonName)
-  # unique(RPC_Cover$ScientificName)
-  
   # RPC_Substrate <- RPC_Cover |>
   #   dplyr::filter(ScientificName %in% c("Rock", "Cobble", "Sand")) |>
   #   dplyr::group_by(SiteNumber, ScientificName) |>
@@ -499,93 +565,128 @@ Export_END_Year <- 2019
   
   { # Shannon's Index   ---- 
     
-    Benthic_Counts <- Benthic_Density |> 
-      dplyr::filter(!CommonName %in% c(
-        "giant kelp, juvenile (<1m)",
-        "giant kelp, subadult (>1m and no haptera above the primary dichotomy)",
-        "giant kelp, adult (>1m and haptera above the primary dichotomy)",
-        "Sargassum horneri, adult (>50cm or recepticles present)",
-        "Sargassum horneri, juvenile (<50cm and no recepticles)")) |> 
-      dplyr::mutate(Count = Mean_Density * 2000) |> 
-      dplyr::group_by(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
-                      ScientificName, SurveyYear, ReserveStatus, Reference) |> 
-      dplyr::summarise(Count = sum(Count)) |> 
-      dplyr::ungroup()
-  
-    Fish_Counts_All <- VFT_Density |>
-      dplyr::group_by(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
-                      ScientificName, SurveyYear, ReserveStatus, Reference) |> 
-      dplyr::summarise(Count = Mean_Density * 2000) |> 
-      dplyr::ungroup() |> 
-      dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
-                    ScientificName, SurveyYear, Count, ReserveStatus, Reference)
+    { # Use for Both  ----
+      Benthic_Counts <- Benthic_Density |> 
+        dplyr::filter(!CommonName %in% c(
+          "giant kelp, juvenile (<1m)",
+          "giant kelp, subadult (>1m and no haptera above the primary dichotomy)",
+          "giant kelp, adult (>1m and haptera above the primary dichotomy)",
+          "Sargassum horneri, adult (>50cm or recepticles present)",
+          "Sargassum horneri, juvenile (<50cm and no recepticles)")) |> 
+        dplyr::mutate(Count = Mean_Density * 2000) |> 
+        dplyr::group_by(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
+                        ScientificName, SurveyYear, ReserveStatus, Reference) |> 
+        dplyr::summarise(Count = sum(Count)) |> 
+        dplyr::ungroup()
+    }
     
-    Counts_All <- rbind(Benthic_Counts, Fish_Counts_All) |>
-      dplyr::group_by(SiteNumber, SurveyYear) |> 
-      dplyr::mutate(richness_all = length(Count > 0)) |> 
-      dplyr::ungroup() |> 
-      tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
-                         values_from = Count, values_fill = 0) 
+    { # All Years   -----
+      
+      Fish_Counts_All <- VFT_Density |>
+        dplyr::mutate(Count = Mean_Density * 2000) |> 
+        dplyr::group_by(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
+                        ScientificName, SurveyYear, ReserveStatus, Reference) |> 
+        dplyr::summarise(Count = sum(Count)) |> 
+        dplyr::ungroup() |> 
+        dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
+                      ScientificName, SurveyYear, Count, ReserveStatus, Reference)
+      
+      Counts_All <- rbind(Benthic_Counts, Fish_Counts_All) |>
+        dplyr::filter(SiteNumber %in% 1:16) |> 
+        dplyr::group_by(SiteNumber, SurveyYear) |> 
+        dplyr::mutate(richness_all = length(Count > 0)) |> 
+        dplyr::ungroup() |> 
+        tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
+                           values_from = Count, values_fill = 0) 
+      
+      ShannonIndex_All <- Counts_All |>
+        dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteCode, -SiteName, 
+                      -SurveyYear, -ReserveStatus, -Reference, -richness_all) |>
+        vegan::diversity()
+      
+      Diversity_Shannon_All <- Counts_All |> 
+        dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, 
+                      SiteName, SurveyYear, ReserveStatus, Reference, richness_all) |>
+        base::cbind("shannon_all" = ShannonIndex_All)
+      
+    }
     
-    ShannonIndex_All <- Counts_All |>
-      dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteCode, -SiteName, 
-                    -SurveyYear, -ReserveStatus, -Reference, -richness_all) |>
-      vegan::diversity()
+    { # 2005 up  ----
+      Fish_Counts_2005 <- RDFC_Density |> 
+        dplyr::filter(!ScientificName %in% 
+                        c('Alloclinus holderi', 'Coryphopterus nicholsi', 
+                          'Lythrypnus dalli', 'Sebastes')) |>
+        dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
+                      ScientificName, SurveyYear, Count, ReserveStatus, Reference)
+      
+      Counts_2005 <- rbind(Benthic_Counts, Fish_Counts_2005) |> 
+        dplyr::filter(SurveyYear > 2004, Reference == TRUE) |>
+        dplyr::group_by(SiteNumber, SurveyYear) |> 
+        dplyr::mutate(richness_2005 = base::length(Count > 0)) |> 
+        dplyr::ungroup() |> 
+        tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
+                           values_from = Count, values_fill = 0)
+      
+      ShannonIndex_2005 <- Counts_2005 |>
+        dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteCode, -SiteName, 
+                      -SurveyYear, -ReserveStatus, -Reference, -richness_2005) |>
+        vegan::diversity()
+      
+      Diversity_Shannon_2005 <- Counts_2005 |> 
+        dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
+                      SurveyYear, ReserveStatus, Reference, richness_2005) |>
+        base::cbind("shannon_2005" = ShannonIndex_2005)
+    }
     
-    Diversity_Shannon_All <- Counts_All |> 
-      dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, 
-                    SiteName, SurveyYear, ReserveStatus, Reference, richness_all) |>
-      base::cbind("shannon_all" = ShannonIndex_All)
-    
-    Fish_Counts_2005 <- RDFC_Density |>
-      dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
-                    ScientificName, SurveyYear, Count, ReserveStatus, Reference) |> 
-      dplyr::filter(!ScientificName %in% 
-                      c('Alloclinus holderi', 'Coryphopterus nicholsi', 
-                        'Lythrypnus dalli', 'Sebastes')) 
-
-    Counts_2005 <- rbind(Benthic_Counts, Fish_Counts_2005) |>
-      dplyr::group_by(SiteNumber, SurveyYear) |> 
-      dplyr::mutate(richness_2005 = length(Count > 0)) |> 
-      dplyr::ungroup() |> 
-      tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
-                         values_from = Count, values_fill = 0) |> 
-      dplyr::filter(SurveyYear > 2004)
-
-    ShannonIndex_2005 <- Counts_2005 |>
-      dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteCode, -SiteName, 
-                    -SurveyYear, -ReserveStatus, -Reference, richness_2005) |>
-      vegan::diversity()
-    
-    Diversity_Shannon_2005 <- Counts_2005 |> 
-      dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, 
-                    SiteName, SurveyYear, ReserveStatus, Reference, richness_2005) |>
-      base::cbind("shannon_2005" = ShannonIndex_2005)
   }
   
   { # Simpson's Index  ----
-    RPC_Cover_Wide <- RPC_Cover |>
-      dplyr::select(-SE, -SD, -CommonName, -Date, -Species,
-                    -Area_Surveyed, -Total_Count, -ReserveYear) |>
-      dplyr::filter(!ScientificName %in% c("Rock", "Sand", "Cobble", "Bare Substrate")) |>
-      tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
-                         values_from = Percent_Cover, values_fill = 0)
     
-    SimpsonIndex <- RPC_Cover_Wide |>
-      dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteCode, -SiteName,
-                    -SurveyYear, -ReserveStatus, -Reference) |>
-      vegan::diversity(index = "simpson")
-
-    Diversity_Simpson <- RPC_Cover_Wide |> 
-      dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, 
-                    SiteName, SurveyYear, ReserveStatus, Reference) |>
-      base::cbind("simpson" = SimpsonIndex) 
+    { # All Years  ----
+      RPC_Cover_Wide_All <- RPC_Cover |>
+        dplyr::select(-SE, -SD, -CommonName, -Date, -Species,
+                      -Area_Surveyed, -Total_Count, -ReserveYear) |>
+        dplyr::filter(!ScientificName %in% c("Rock", "Sand", "Cobble", "Bare Substrate"),
+                      SiteNumber %in% 1:16) |>
+        tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
+                           values_from = Percent_Cover, values_fill = 0)
+      
+      SimpsonIndex <- RPC_Cover_Wide_All |>
+        dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteCode, -SiteName,
+                      -SurveyYear, -ReserveStatus, -Reference) |>
+        vegan::diversity(index = "simpson")
+      
+      Diversity_Simpson_All <- RPC_Cover_Wide_All |> 
+        dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
+                      SurveyYear, ReserveStatus, Reference) |>
+        base::cbind("simpson_all" = SimpsonIndex) 
+    }
+    
+    { # 2005 up  ----
+      RPC_Cover_Wide_2005 <- RPC_Cover |>
+        dplyr::select(-SE, -SD, -CommonName, -Date, -Species,
+                      -Area_Surveyed, -Total_Count, -ReserveYear) |>
+        dplyr::filter(!ScientificName %in% c("Rock", "Sand", "Cobble", "Bare Substrate"),
+                      Reference == TRUE, SurveyYear > 2004) |>
+        tidyr::pivot_wider(names_from = ScientificName, values_fn = sum,
+                           values_from = Percent_Cover, values_fill = 0)
+      
+      SimpsonIndex <- RPC_Cover_Wide_2005 |>
+        dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteCode, -SiteName,
+                      -SurveyYear, -ReserveStatus, -Reference) |>
+        vegan::diversity(index = "simpson")
+      
+      Diversity_Simpson_2005 <- RPC_Cover_Wide_2005 |> 
+        dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, 
+                      SurveyYear, ReserveStatus, Reference) |>
+        base::cbind("simpson_2005" = SimpsonIndex) 
+    }
+    
   }
   
   { # Diversity Complete   ----
-    Diversity <- Diversity_Shannon_All  |> 
-      dplyr::left_join(Diversity_Simpson) |> 
-      dplyr::left_join(Diversity_Shannon_2005) |> 
+    
+    Diversity_All <- left_join(Diversity_Shannon_All, Diversity_Simpson_All) |>  
       dplyr::left_join(
         Site_Info |> 
           dplyr::select(SiteNumber, ReserveYear, Latitude, Longitude)) |> 
@@ -594,11 +695,33 @@ Export_END_Year <- 2019
           SurveyYear < 2003 & SiteCode == "LC" ~ "Inside",
           SurveyYear < 2003 & SiteCode == "CC" ~ "Inside",
           SurveyYear < 2003 ~ "Outside",
-          TRUE ~ ReserveStatus),
-        ReserveColor = ifelse(ReserveStatus == "Inside", "green", "red")) |>
+          TRUE ~ ReserveStatus)) |>
       dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 7, 1))) |> 
-      dplyr::filter(SiteCode != "MM" | SurveyYear > 2007) |> 
-      arrow::write_feather("Tidy_Data/Diversity.feather")
+      dplyr::filter(SiteCode != "MM" | SurveyYear > 2007) 
+    
+    Diversity_Long_All <- Diversity_All |> 
+      tidyr::pivot_longer(cols = c(shannon_all, simpson_all, richness_all), 
+                          values_to = "Value", names_to = "Index") |> 
+      tidyr::drop_na(Value) |>
+      arrow::write_feather("Tidy_Data/Diversity_All.feather")
+    
+    Diversity_2005 <- left_join(Diversity_Shannon_2005, Diversity_Simpson_2005) |>  
+      dplyr::left_join(
+        Site_Info |> 
+          dplyr::select(SiteNumber, ReserveYear, Latitude, Longitude)) |> 
+      dplyr::mutate(
+        ReserveStatus = case_when(
+          SurveyYear < 2003 & SiteCode == "LC" ~ "Inside",
+          SurveyYear < 2003 & SiteCode == "CC" ~ "Inside",
+          SurveyYear < 2003 ~ "Outside",
+          TRUE ~ ReserveStatus)) |>
+      dplyr::mutate(Date = base::as.Date(base::ISOdate(SurveyYear, 7, 1))) 
+    
+    Diversity_Long_2005 <- Diversity_2005 |> 
+      tidyr::pivot_longer(cols = c(shannon_2005, simpson_2005, richness_2005), 
+                          values_to = "Value", names_to = "Index") |> 
+      tidyr::drop_na(Value) |>
+      arrow::write_feather("Tidy_Data/Diversity_2005.feather")
   }
   
 }
@@ -676,16 +799,10 @@ Export_END_Year <- 2019
     
   }
   
-  { # Benthic Sizes  ----
-    Benthic_Sizes <- base::rbind(Kelp_Sizes, Gorgonian_Sizes, Invert_Sizes) |>
-      dplyr::group_by(SiteCode, SurveyYear, CommonName) |> 
-      dplyr::mutate(Total_Count = length(Size), Mean_Size = mean(Size), Date = max(Date)) |> 
-      dplyr::ungroup() |> 
-      arrow::write_feather("Tidy_Data/Benthic_Sizes.feather") |> 
-      dplyr::select(-Mean_Size, -Total_Count) 
-  }
+  { # Benthic Sizes with Biomass and Density Values ----
+    
+    Benthic_Sizes <- base::rbind(Kelp_Sizes, Gorgonian_Sizes, Invert_Sizes) 
   
-  { # Benthic Biomass Long  ----
     Benthic_Biomass <- Benthic_Density |> 
       dplyr::filter(CommonName %in% unique(Benthic_Sizes$CommonName)) |>
       dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear, ScientificName, CommonName,        
@@ -694,7 +811,7 @@ Export_END_Year <- 2019
       dplyr::filter(!ScientificName %in% c(
         "Haliotis assimilis",
         "Cypraea spadicea",
-        # "Parastichopus parvimensis", # Only measured in early years, Not sure if should leave as count (Uncommented) 
+        "Parastichopus parvimensis", # Only measured in early years, Not sure if should leave as count (Uncommented)
         # or as biomass (commented). The R values look good on the regression, grouped by species and reserve status.
         "Centrostephanus coronatus",
         "Stylaster californicus")) |> 
@@ -724,13 +841,17 @@ Export_END_Year <- 2019
                       # Reference, .keep_all = TRUE) |>
       dplyr::ungroup() 
     
+  }
+  
+  { # Benthic Regression  -----
+    
     Benthic_Regression_Tidy <- Benthic_Biomass |>
       group_by(CommonName, ReserveStatus) |>
       dplyr::do(broom::tidy(lm(Mean_Biomass ~ Mean_Density, ., na.action = na.exclude)))
     
     Benthic_Regression_Glance <- Benthic_Biomass %>%
       group_by(CommonName, ReserveStatus) %>%
-      do(broom::glance(lm(Mean_Biomass ~ Mean_Density, ., na.action = na.exclude)))  %>% 
+      do(broom::glance(lm(Mean_Biomass ~ Mean_Density, ., na.action = na.exclude))) %>% 
       dplyr::select(-statistic, -p.value) %>% 
       dplyr::full_join(Benthic_Regression_Tidy) %>% 
       readr::write_csv("Meta_Data/Benthic_Regression.csv")
@@ -759,6 +880,10 @@ Export_END_Year <- 2019
                     Mean_Biomass, Survey_Type, ReserveStatus, Reference, Trophic_Broad, 
                     Targeted_Broad, Recreational_Fishery, Commercial_Fishery)
     
+  }
+  
+  { # Benthic Biomass Groups (Total, Trophic Level and Fishery Status)  -----
+      
     Benthic_total_Biomass <- Benthic_partial_Biomass |> 
       dplyr::group_by(SiteNumber, IslandCode, IslandName, SiteCode, SiteName,
                       SurveyYear, Date, ReserveStatus, Reference) |> 
@@ -788,7 +913,10 @@ Export_END_Year <- 2019
                     Mean_Density = NA, Survey_Type = 'Mixed', Targeted_Broad = 'Mixed', 
                     Recreational_Fishery = 'Mixed', Commercial_Fishery = 'Mixed') |>
       dplyr::ungroup()
-    
+  }
+  
+  { # Benthic Mean Biomass  -----
+      
     Benthic_Mean_Biomass <- rbind(
       Benthic_partial_Biomass, Benthic_total_Biomass, 
       Benthic_target_Biomass, Benthic_trophic_Biomass)  |>
@@ -934,11 +1062,20 @@ Export_END_Year <- 2019
     
   }
   
-  { # Fish Biomass Long ----- 
+  { # Fish Regression  ----
     
-    Fish_Regression <- Fish_Biomass |>
+    Fish_Regression_Tidy <- Fish_Biomass |>
       dplyr::group_by(CommonName, ReserveStatus) |>
-      dplyr::do(broom::tidy(lm(Mean_Biomass ~ Count, ., na.action = na.exclude))) |> 
+      dplyr::do(broom::tidy(lm(Mean_Biomass ~ Count, ., na.action = na.exclude)))
+    
+    Fish_Regression_Glance <- Fish_Biomass |>
+      dplyr::group_by(CommonName, ReserveStatus) |>
+      dplyr::do(broom::glance(lm(Mean_Biomass ~ Count, ., na.action = na.exclude))) %>% 
+      dplyr::select(-statistic, -p.value) %>% 
+      dplyr::full_join(Fish_Regression_Tidy) %>% 
+      readr::write_csv("Meta_Data/Fish_Regression.csv")
+    
+    Fish_Regression <- Fish_Regression_Tidy |> 
       dplyr::select(-statistic, -p.value, -std.error) |>
       tidyr::pivot_wider(names_from = term, values_from = estimate) |>
       dplyr::rename(yint = "(Intercept)", b = Count) |>
@@ -962,6 +1099,10 @@ Export_END_Year <- 2019
                     Mean_Biomass, ReserveStatus, Reference, Trophic_Broad, Targeted_Broad, 
                     Recreational_Fishery, Commercial_Fishery) 
     
+  }
+  
+  { # Fish Biomass Groups (Total, Trophic Level and Fishery Status) ----- 
+      
     Fish_total_Biomass <- Fish_partial_Biomass |> 
       dplyr::group_by(SiteNumber, IslandCode, IslandName, SiteCode, SiteName,
                       SurveyYear, Date, ReserveStatus, Reference) |> 
@@ -993,6 +1134,10 @@ Export_END_Year <- 2019
                     Recreational_Fishery = 'Mixed', Commercial_Fishery = 'Mixed') |>
       dplyr::ungroup()
     
+  }
+  
+  { # Fish Mean Biomass  -----
+      
     Fish_Mean_Biomass <- rbind(
       Fish_partial_Biomass, Fish_target_Biomass, 
       Fish_trophic_Biomass, Fish_total_Biomass) |> 
@@ -1146,8 +1291,9 @@ Export_END_Year <- 2019
   
   { # Mixed Data   -----
     
-    Mixed_Data_All <- RPC_Cover |> 
+    Mixed_Data <- RPC_Cover |> 
       dplyr::filter(
+        Reference == TRUE, SurveyYear > 2004,
         !ScientificName %in% c(
           "Macrocystis pyrifera", "Eisenia arborea",
           "Pterygophora californica", "Laminaria farlowii",
@@ -1158,31 +1304,22 @@ Export_END_Year <- 2019
                     Mean_Density = Percent_Cover) |> 
       dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear, 
                     ScientificName, CommonName, Mean_Density, ReserveStatus, Reference) |> 
-      dplyr::mutate(
-        ReserveStatus = dplyr::case_when(
-          SurveyYear < 2003 & SiteCode == "LC" ~ "Inside",
-          SurveyYear < 2003 & SiteCode == "CC" ~ "Inside",
-          SurveyYear < 2003 ~ "Outside",
-          TRUE ~ ReserveStatus)) |> 
-      base::rbind(Counts, Benthic_Mean_Biomass |>
+      base::rbind(Counts |> dplyr::filter(SurveyYear > 2004, Reference == TRUE), 
+                  Benthic_Mean_Biomass |> 
+                    dplyr::filter(SurveyYear > 2004, Reference == TRUE) |>
                     dplyr::select(-Date, -Mean_Density,  -Survey_Type, -Classification, -Trophic_Broad, 
                                   -Targeted_Broad, -Recreational_Fishery, -Commercial_Fishery) |>
                     dplyr::mutate(Mean_Density = Mean_Biomass) |>
                     dplyr::select(-Mean_Biomass)) |>
       base::rbind(total_biomass |>
+                    dplyr::filter(SurveyYear > 2004, Reference == TRUE) |>
                     dplyr::select(-Date, -Count, -Survey_Type, -Classification, -Trophic_Broad, 
                                   -Targeted_Broad, -Recreational_Fishery, -Commercial_Fishery) |>
                     dplyr::mutate(Mean_Density = Mean_Biomass) |>
                     dplyr::select(-Mean_Biomass)) |>
       dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear, 
                     CommonName, Mean_Density, ReserveStatus, Reference) |> 
-      tidyr::pivot_wider(names_from = CommonName, values_from = Mean_Density, values_fill = 0) |>
-      dplyr::left_join(
-        Diversity_Shannon_All |> 
-          dplyr::select(SiteNumber, SurveyYear, richness_all, shannon_all)) |>
-      dplyr::left_join(
-        Diversity_Simpson |> 
-          dplyr::select(SiteNumber, SurveyYear, simpson)) |> 
+      tidyr::pivot_wider(names_from = CommonName, values_from = Mean_Density, values_fill = 0) |> 
       dplyr::rename_with(~ base::gsub(",", "", .)) |> 
       dplyr::rename_with(~ base::gsub(" ", "_", .)) |> 
       dplyr::rename_with(~ base::gsub("-", "_", .)) |> 
@@ -1192,16 +1329,12 @@ Export_END_Year <- 2019
                     Carnivore_invert = Carnivore, 
                     Herbivore_invert = Herbivore, 
                     Planktivore_invert = Planktivore) |> 
-      dplyr::filter(SiteCode != "MM" | SurveyYear > 2004) |>
-      arrow::write_feather("Tidy_Data/Mixed_Data_All.feather")
-    
-    Mixed_Data_2005 <- Mixed_Data_All |> 
-      dplyr::select(-all_of(VFT_Species), -richness_all, -shannon_all) |> 
-      dplyr::filter(SurveyYear > 2004) |>
-      dplyr::left_join(Diversity_Shannon_2005) |> 
+      dplyr::select(-all_of(VFT_Species)) |> 
+      dplyr::left_join(
+        Diversity_2005 |>
+          dplyr::select(-Latitude, -Longitude, -ReserveYear, -Date)) |> 
       dplyr::left_join(RDFC_Wide) |> 
       dplyr::left_join(Fish_Biomass_Wide) |> 
-      base::replace(is.na(.), 0) |>
       dplyr::rename_with(~ base::gsub("-", "_", .)) |> 
       dplyr::rename(Non_targeted_fish_biomass = Non_targeted,
                     Targeted_fish_biomass = Targeted,
@@ -1235,38 +1368,21 @@ Export_END_Year <- 2019
     RF_VI_Res_2005 <- randomForest::importance(RF_Reserve_Model_2005) |>
       as.data.frame() |>
       tibble::rownames_to_column("Common_Name")
-  }
  
-  { # 2005 Island Model   -----
-    
-    RF_Island_Model_2005 <- randomForest::randomForest(
-      data = Mixed_2005,
-      IslandCode ~ ., ntree = 3000, mtry = 8,
-      importance = TRUE, proximity = TRUE, keep.forest = TRUE)
-    
-    saveRDS(RF_Island_Model_2005, "Models/RF_Island_Model_2005.rds")
-    
-    RF_VI_Isl_2005 <- randomForest::importance(RF_Island_Model_2005) |>
-      as.data.frame() |>
-      tibble::rownames_to_column("Common_Name") |> 
-      dplyr::rename(MeanDecreaseAccuracy_Isl = MeanDecreaseAccuracy,
-                    MeanDecreaseGini_Isl = MeanDecreaseGini)
-    
-    RF_VI_2005 <- RF_VI_Isl_2005 |>  
-      dplyr::full_join(RF_VI_Res_2005) |>
+    RF_Importance <- RF_VI_Res_2005 |>
       dplyr::left_join(Mixed_Data_xRef_Biomass) |> 
       dplyr::select(Common_Name, CommonName, ScientificName, Inside, Outside, 
-                    SR, SC, AN, SB, 
-                    MeanDecreaseAccuracy, MeanDecreaseGini, MeanDecreaseAccuracy_Isl, MeanDecreaseGini_Isl,             
+                    MeanDecreaseAccuracy, MeanDecreaseGini,             
                     Data_Type, Classification, Targeted) |> 
-      dplyr::mutate(Type = 'RF_2005')
-    
-  }
-  
-  { # RF All ranked variables   ----
-    RF_Importance <- RF_VI_2005 |> 
       dplyr::filter(CommonName != "Detritivore invert") |> 
       dplyr::arrange(desc(MeanDecreaseAccuracy)) |>  
+      dplyr::mutate(CommonName = paste(CommonName, " (", Data_Type, ")", sep = ""),
+                    CommonName = gsub(" biomass", "", CommonName),
+                    CommonName = gsub("Biomass", "B", CommonName),
+                    CommonName = gsub("Count", "C", CommonName),
+                    CommonName = gsub("Percent Cover", "P", CommonName),
+                    CommonName = gsub("Index Value", "I", CommonName),
+                    CommonName = gsub("Categorical", "Cg", CommonName)) |> 
       arrow::write_feather("Tidy_Data/RF_Importance.feather")
   }
   
@@ -1293,7 +1409,7 @@ Export_END_Year <- 2019
 
 { # nMDS Calculations    ----
 
-    Density_Wide <- Density_CSV |> 
+    Density_Wide <- Density |> 
       dplyr::filter(
         Survey_Type != "VFT", SurveyYear > 2004, Reference == TRUE,
         !ScientificName %in% c("Alloclinus holderi", "Coryphopterus nicholsi", "Lythrypnus dalli") | Survey_Type == "1 m² quads") |> 
@@ -1380,118 +1496,46 @@ Export_END_Year <- 2019
 }
 
 { # GLMMs  ----
+  model_vars <-  "~ ReserveStatus * IslandCode + Mean_ONI_Anom + Mean_PDO_Anom + Mean_KFM_Anom + (1 | SurveyYear)"
   
-  { # Diversity  ----
-    Diversity_2005 <- Diversity |> 
-      dplyr::filter(Reference == TRUE, SurveyYear > 2004) |> 
-      dplyr::left_join(SST_Anomaly_Index_Mean)
+  Mixed_Data_2005 <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
+    dplyr::select(
+      !dplyr::contains(c("white_abalone", "wakame",
+                         "opaleye_juvenile", "northern_ronquil",
+                         "black_croaker","northern_anchovy",
+                         "leopard_shark","California_halibut",
+                         "wolf_eel", "monkeyface_prickleback",
+                         "sarcastic_fringehead", "plainfin_midshipman",
+                         "walleye_surfperch", "ocean_sunfish",
+                         "cusk_eel", "gunnel", "finescale", "orangethroat"))) |>
+    dplyr::left_join(Annual_Temp_Anom) 
+  
+  dv_names <- base::names(dplyr::select(Mixed_Data_2005, 9:164))
+  mod_results <- base::data.frame(`Predictor Variable` = character(), `Response Variable` = character(), 
+                            `F` = double(), Df = integer(), Df.res = integer(), `Pr(>F)` = double(),
+                            VIF_Score = double())
+  for (y in dv_names){
+    form <- stats::formula(base::paste(y, model_vars))
+    mod <- lme4::lmer(data = Mixed_Data_2005, formula = form)
+    model <- car::Anova(test = "F", mod) 
+    VIF <- car::vif(mod)
+    model_df <- model |> 
+      base::as.data.frame() |> 
+      tibble::rownames_to_column(var = "Predictor Variable") |> 
+      dplyr::mutate(`Response Variable` = y,
+                    `VIF Score` = as.vector(VIF[, 1]))
     
-    div_d_v_names <- c("shannon_2005", "richness_2005", "simpson")
-    div_results <- data.frame(`Dependent Variable` = character(), `Independent Variable` = character(), 
-                              `F` = double(), Df = integer(), Df.res = integer(), `Pr(>F)` = double())
-    
-    for (y in div_d_v_names){
-      form <- formula(paste(y, "~ ReserveStatus * IslandCode + Mean_ONI_Anom + Mean_PDO_Anom  + (1 | SurveyYear)"))
-      model <- car::Anova(test = "F", lme4::lmer(data = Diversity_2005, formula = form)) |> 
-        as.data.frame() |> 
-        rownames_to_column(var = "Independent Variable") |> 
-        dplyr::mutate(`Dependent Variable` = y)
-      
-      div_results <- rbind(div_results, model)
-    }
-    div_results <- dplyr::select(div_results, `Dependent Variable`, `Independent Variable`, 
-                                 `F`, Df, Df.res, `Pr(>F)`)  |> 
-      dplyr::mutate(Data_Type = "Calculated Value")
+    mod_results <- base::rbind(mod_results, model_df)
   }
   
-  { # Counts  ----
-    Count_Wide <- Density_CSV |> 
-      dplyr::filter(Survey_Type != "VFT", SurveyYear > 2004, Reference == TRUE,
-                    !ScientificName %in% c(
-                      "Alloclinus holderi", "Coryphopterus nicholsi", "Lythrypnus dalli") | Survey_Type == "1 m² quads",
-                    !CommonName %in% c("white abalone", "wakame, adult", "wakame, juvenile",
-                                       "opaleye, juvenile", "northern ronquil",
-                                       "black croaker","northern anchovy",                                              
-                                       "leopard shark","California halibut",                                              
-                                       "wolf eel", "monkeyface prickleback",                                          
-                                       "sarcastic fringehead", "plainfin midshipman",                                             
-                                       "walleye surfperch", "ocean sunfish")) |> 
-      dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear,
-                    CommonName, Count, ReserveStatus) |>  
-      tidyr::pivot_wider(names_from = CommonName, values_from = Count, values_fill = 0) |> 
-      dplyr::rename_with(~ base::gsub(",", "", .)) |> 
-      dplyr::rename_with(~ base::gsub(" ", "_", .)) |> 
-      dplyr::rename_with(~ base::gsub("-", "_", .)) |> 
-      dplyr::rename_with(~ base::gsub("'", "", .)) |> 
-      dplyr::rename_with(~ base::gsub("<", "", .)) |> 
-      dplyr::rename_with(~ base::gsub(">", "", .)) |> 
-      dplyr::rename_with(~ base::gsub("1", "", .)) |> 
-      dplyr::rename_with(~ base::gsub("0", "", .)) |> 
-      dplyr::rename_with(~ base::gsub("5", "", .)) |> 
-      dplyr::rename_with(~ base::gsub("[()]", "", .)) |> 
-      dplyr::left_join(SST_Anomaly_Index_Mean)
-    
-    count_d_v_names <- names(dplyr::select(Count_Wide, 8:103))
-    count_results <- data.frame(`Dependent Variable` = character(), `Independent Variable` = character(), 
-                                `F` = double(), Df = integer(), Df.res = integer(), `Pr(>F)` = double())
-    
-    for (y in count_d_v_names){
-      form <- formula(paste(y, "~ ReserveStatus * IslandCode + Mean_ONI_Anom + Mean_PDO_Anom + (1 | SurveyYear)"))
-      model <- car::Anova(test = "F", lme4::lmer(data = Count_Wide, formula = form)) |> 
-        as.data.frame() |> 
-        rownames_to_column(var = "Independent Variable") |> 
-        dplyr::mutate(`Dependent Variable` = y)
-      
-      count_results <- rbind(count_results, model)
-    }
-    count_results <- dplyr::select(count_results, `Dependent Variable`, `Independent Variable`, 
-                                   `F`, Df, Df.res, `Pr(>F)`) |> 
-      dplyr::mutate(Data_Type = "Count")
-  }
-  
-  { # Biomass  ----
-    Biomass_Wide <- Mean_Biomass_CSV |> 
-      dplyr::filter(SurveyYear > 2004, Reference == TRUE,
-                    !CommonName %in% c(
-                      "Detritivore", "Producer", "Non-targeted", "Targeted", "Carnivore",                   
-                      "Herbivore", "Piscivore", "Planktivore"                  
-                    )) |> 
-      dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear,
-                    CommonName, Mean_Biomass, ReserveStatus) |>  
-      tidyr::pivot_wider(names_from = CommonName, values_from = Mean_Biomass, values_fill = 0) |> 
-      dplyr::rename_with(~ base::gsub(",", "", .)) |> 
-      dplyr::rename_with(~ base::gsub(" ", "_", .)) |> 
-      dplyr::rename_with(~ base::gsub("-", "_", .)) |>
-      dplyr::rename_with(~ base::gsub("'", "", .)) |>
-      dplyr::rename_with(~ base::gsub("<", "", .)) |>
-      dplyr::rename_with(~ base::gsub(">", "", .)) |>
-      dplyr::rename_with(~ base::gsub("1m", "", .)) |>
-      dplyr::rename_with(~ base::gsub("[()]", "", .)) |> 
-      dplyr::left_join(SST_Anomaly_Index_Mean)
-    
-    biomass_d_v_names <- names(dplyr::select(Biomass_Wide, 8:53))
-    biomass_results <- data.frame(`Dependent Variable` = character(), `Independent Variable` = character(), 
-                                `F` = double(), Df = integer(), Df.res = integer(), `Pr(>F)` = double())
-    
-    for (y in biomass_d_v_names){
-      form <- formula(paste(y, "~ ReserveStatus * IslandCode + Mean_ONI_Anom + Mean_PDO_Anom + (1 | SurveyYear)"))
-      model <- car::Anova(test = "F", lme4::lmer(data = Biomass_Wide, formula = form)) |> 
-        as.data.frame() |> 
-        rownames_to_column(var = "Independent Variable") |> 
-        dplyr::mutate(`Dependent Variable` = y)
-      
-      biomass_results <- rbind(biomass_results, model)
-    }
-    biomass_results <- dplyr::select(biomass_results, `Dependent Variable`, `Independent Variable`, 
-                                   `F`, Df, Df.res, `Pr(>F)`) |> 
-      dplyr::mutate(Data_Type = "Biomass")
-  }
-  
-  { # All Results ----
-    GLMM_Results <- rbind(div_results, count_results, biomass_results) |> 
-      arrow::write_feather("Tidy_Data/GLMM_Results.feather")
-  }
-
+  GLMM_Results <- mod_results |> 
+    dplyr::select(`Response Variable`, `Predictor Variable`, 
+                  `F`, Df, `Pr(>F)`, `VIF Score`) |> 
+    dplyr::mutate(`F` = round(`F`, 3),
+                  `Pr(>F)` = round(`Pr(>F)`, 3),
+                  `Pr(>F)` = ifelse(`Pr(>F)` < 0.001, "< 0.001", as.character(`Pr(>F)`))) |> 
+    dplyr::rename(`P-Value` =`Pr(>F)`) |> 
+    arrow::write_feather("Tidy_Data/GLMM_Results.feather")
 }
 
 { # Indicator Species Analysis   ----
@@ -1575,7 +1619,6 @@ Export_END_Year <- 2019
 
  
 }
-
 
 
 
