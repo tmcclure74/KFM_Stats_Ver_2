@@ -39,6 +39,34 @@ GLMM <- GLMM_Results %>%
 knitr::kable(GLMM)
 ```
 
+```{r}
+GLMM_Vars <- c("shannon_2005",
+               "simpson_2005",
+               "warty_sea_cucumber",
+               "Kellets_whelk",
+               "California_spiny_lobster",
+               "white_sea_urchin",
+               "garibaldi",
+               "orange_puffball_sponge",
+               "bladder_chain_kelp",
+               "red_sea_urchin",
+               "California_sheephead_male",
+               "bat_star",
+               "giant_kelp",
+               "purple_sea_urchin",
+               "kelp_bass",
+               "sunflower_star")
+
+for (rv in GLMM_Vars) {
+  
+  print(rv)
+  
+  GLMM <- GLMM_Results %>% 
+    dplyr::filter(`Response Variable` == rv) |> 
+    dplyr::select(-`Response Variable`, -`VIF Score`)
+  print(knitr::kable(GLMM))
+}
+```
 
 ```{r Groups}
 knitr::kable(Groups)

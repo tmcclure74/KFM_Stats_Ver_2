@@ -4,9 +4,9 @@ orange puffball sponge,Tethya aurantia,Non-targeted,Planktivore
 red gorgonian,Lophogorgia chilensis,Non-targeted,Planktivore
 brown gorgonian,Muricea fruticosa,Non-targeted,Planktivore
 California golden gorgonian,Muricea californica,Non-targeted,Planktivore
-red abalone,Haliotis rufescens,Targeted,Herbivore
-pink abalone,Haliotis corrugata,Targeted,Herbivore
-green abalone,Haliotis fulgens,Targeted,Herbivore
+red abalone,Haliotis rufescens,Non-targeted,Herbivore
+pink abalone,Haliotis corrugata,Non-targeted,Herbivore
+green abalone,Haliotis fulgens,Non-targeted,Herbivore
 Kellet's whelk,Kelletia kelletii,Targeted,Carnivore
 wavy turban snail,Megastraea undosa,Targeted,Carnivore
 red turban snail,Lithopoma gibberosa,Targeted,Herbivore

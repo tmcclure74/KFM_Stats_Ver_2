@@ -1314,8 +1314,10 @@ Export_END_Year <- 2019
     Fish_Mean_Biomass <- rbind(
       Fish_partial_Biomass, Fish_target_Biomass, 
       Fish_trophic_Biomass, Fish_total_Biomass) |> 
-      dplyr::mutate(Survey_Type = "RDFC",
-                    Mean_Biomass = Mean_Biomass / 2000) |>
+      dplyr::mutate(Survey_Type = "RDFC"
+                    # ,
+                    # Mean_Biomass = Mean_Biomass / 2000
+                    ) |>
       dplyr::left_join(
         Species_Info |> 
           dplyr::distinct(ScientificName, Classification)) |> 
@@ -1590,8 +1592,9 @@ Export_END_Year <- 2019
   
 }
 
-{ # GLMMs  ----
-  model_vars <-  "~ ReserveStatus * IslandCode + Mean_ONI_Anom + Mean_PDO_Anom + Mean_KFM_Anom + (1 | SurveyYear)"
+{ # GLMMs  ---- 
+  # Mean_PDO_Anom +  Mean_KFM_Anom + 
+  model_vars <-  "~ ReserveStatus * IslandCode + Mean_ONI_Anom + (1 | SurveyYear)"
   
   Mixed_Data_2005 <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
     dplyr::select(
@@ -1792,6 +1795,7 @@ Export_END_Year <- 2019
           ScientificName != 'Lithopoma gibberosa' | SurveyYear > 2002) |> 
         dplyr::group_by(SiteNumber, CommonName, SurveyYear) |> 
         dplyr::mutate(Mean_Biomass = Mean_Biomass + runif(1, min = .9, max = 1.1),
+                      # Mean_Biomass = ifelse(Classification == "Fish", Mean_Biomass * 2000, Mean_Biomass),
                       CommonName = factor(CommonName),
                       Targeted_Broad = factor(Targeted_Broad),
                       Trophic_Broad = factor(Trophic_Broad)) |> 

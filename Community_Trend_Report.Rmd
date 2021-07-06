@@ -76,42 +76,54 @@ ggplot2::ggplot() +
 Top_30_MDA <- RF_Importance %>%
   dplyr::arrange(desc(MeanDecreaseAccuracy)) %>%  
   head(30) %>% 
-  droplevels()
+  droplevels() |> 
+  dplyr::mutate(CommonName = forcats::fct_rev(forcats::fct_inorder(CommonName)))
 
 Top_30_MDG <- RF_Importance %>% 
   dplyr::arrange(desc(MeanDecreaseGini)) %>%  
   head(30) %>% 
-  droplevels()
+  droplevels() |> 
+  dplyr::mutate(CommonName = forcats::fct_rev(forcats::fct_inorder(CommonName)))
 
-Accuracy <- ggplot2::ggplot(Top_30_MDA, aes(x = MeanDecreaseAccuracy, 
-                               y = reorder(CommonName, MeanDecreaseAccuracy), 
-                               color = Targeted)) +
+Accuracy <- ggplot2::ggplot(Top_30_MDA, aes(x = MeanDecreaseAccuracy, y = CommonName, color = Targeted)) +
   ggplot2::geom_point() +
   ggplot2::geom_segment(size = 1.25, 
-               aes(x = min(MeanDecreaseAccuracy) -2, xend = MeanDecreaseAccuracy,
+               aes(x = min(MeanDecreaseAccuracy) - 2, xend = MeanDecreaseAccuracy,
                    y = CommonName, yend = CommonName)) +
-  ggplot2::labs(x = "Mean Decrease in % Accuracy", y = NULL, 
+  ggplot2::geom_hline(yintercept = 20.5, linetype = "dashed") +
+  ggplot2::geom_text(size = 5, aes(x = Inf, y = 20.75), show.legend = F, 
+                     label = "Top 10 \U1f815", vjust = 0, hjust = 1) +
+  ggplot2::geom_hline(yintercept = 10.5, linetype = "dashed") +
+  ggplot2::geom_text(size = 5, aes(x = Inf, y = 10.75), show.legend = F, 
+                     label = "Top 20 \U1f815", vjust = 0, hjust = 1) +
+
+  ggplot2::labs(x = "Mean Decrease in % Accuracy", y = NULL, tag = "A", 
        color = NULL, linetype = NULL) +
   ggplot2::scale_x_continuous(expand = expansion(mult = c(0,.1)), 
                      limits = c(min(Top_30_MDA$MeanDecreaseAccuracy) - 2, NA)) +
-  ggplot2::scale_color_manual(values = Target_Colors) +
+  ggplot2::scale_color_manual(values = Target_Colors, limits = force) +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text = element_text(size = 12),
         axis.title = element_text(size = 12),
         legend.text = element_text(size = 12))
 
-Gini <- ggplot2::ggplot(Top_30_MDG, aes(x = MeanDecreaseGini, 
-                           y = reorder(CommonName, MeanDecreaseGini),
-                           color = Targeted)) +
+Gini <- ggplot2::ggplot(Top_30_MDG, aes(x = MeanDecreaseGini, y = CommonName, color = Targeted)) +
   ggplot2::geom_point() +
   ggplot2::geom_segment(size = 1.25,
                aes(x = min(MeanDecreaseGini) - 1, xend = MeanDecreaseGini,
                    y = CommonName, yend = CommonName)) +
-  ggplot2::labs(x = "Mean Decrease in Gini Index", y = NULL, 
+  ggplot2::geom_hline(yintercept = 20.5, linetype = "dashed") +
+  ggplot2::geom_text(size = 5, aes(x = Inf, y = 20.75), show.legend = F, 
+                     label = "Top 10 \U1f815", vjust = 0, hjust = 1) +
+  ggplot2::geom_hline(yintercept = 10.5, linetype = "dashed") +
+  ggplot2::geom_text(size = 5, aes(x = Inf, y = 10.75), show.legend = F, 
+                     label = "Top 20 \U1f815", vjust = 0, hjust = 1) +
+  ggplot2::labs(x = "Mean Decrease in Gini Index", y = NULL, tag = "B", 
        color = NULL, linetype = NULL) +
   ggplot2::scale_x_continuous(expand = expansion(mult = c(0,.1)), 
                      limits = c(min(Top_30_MDG$MeanDecreaseGini) - 1, NA)) +
-  ggplot2::scale_color_manual(values = Target_Colors) +
+  ggplot2::scale_y_discrete() +
+  ggplot2::scale_color_manual(values = Target_Colors, limits = force) +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text = element_text(size = 12),
         axis.title = element_text(size = 12),
@@ -482,9 +494,11 @@ Mean_Biomass_16_Plot(Sci_Name = "Pycnopodia helianthoides")
 
 ADD MORE SPECIES?
 
+
 ## Bio Sum
 
 ```{r Benthic Biomass Summary, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
+options(scipen = 999)
 Ben_Bio <- Biomass |> 
   dplyr::filter(Classification %in% c("Algae","Invertebrates"),
                 CommonName %in% c("Targeted", "Non-targeted")) 
@@ -495,9 +509,29 @@ ggplot2::ggplot(Ben_Bio, aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName
   ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .05))) +
   ggplot2::facet_grid(rows= vars(IslandName), cols = vars(ReserveStatus), scales = "free") +
   ggplot2::scale_fill_viridis_d(end = .8, guide = guide_legend(ncol = 1)) +
-  ggplot2::labs(title = "All Ivertebrates", x = "Survey Year",
+  ggplot2::labs(title = "All Benthic Species", x = "Survey Year",
                 y = "Mean Biomass (g/m²)", fill = NULL) +
   Biomass_Summary_theme() 
+```
+
+```{r Benthic Biomass T Summary, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
+Ben_Bio <- Biomass |> 
+  dplyr::filter(Classification %in% c("Algae","Invertebrates"),
+                Targeted_Broad == "Targeted",
+                !CommonName %in% c(
+                  "total benthic biomass",
+                  "Targeted", "Non-targeted",
+                  "Herbivore", "Planktivore", "Carnivore"))
+
+ggplot2::ggplot(Ben_Bio, aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
+  ggplot2::geom_area(position = "stack", stat = "smooth") + 
+  ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by, expand = c(0, 0)) +
+  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .05))) +
+  ggplot2::scale_fill_viridis_d(guide = guide_legend(ncol = 1)) +
+  ggplot2::facet_grid(rows= vars(IslandName), cols = vars(ReserveStatus), scales = "free") +
+  ggplot2::labs(title = "Targeted Benthic Species", x = "Survey Year", y = "Mean Biomass (g/m²)", 
+                fill = NULL) +
+  Biomass_Summary_theme()
 ```
 
 ```{r Benthic Biomass NT Summary, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
@@ -520,32 +554,12 @@ ggplot2::ggplot(Ben_Bio, aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName
   Biomass_Summary_theme()
 ```
 
-```{r Benthic Biomass T Summary, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
-Ben_Bio <- Biomass |> 
-  dplyr::filter(Classification %in% c("Algae","Invertebrates"),
-                Targeted_Broad == "Targeted",
-                !CommonName %in% c(
-                  "total benthic biomass",
-                  "Targeted", "Non-targeted",
-                  "Herbivore", "Planktivore", "Carnivore"))
-
-ggplot2::ggplot(Ben_Bio, aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
-  ggplot2::geom_area(position = "stack", stat = "smooth") + 
-  ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by, expand = c(0, 0)) +
-  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .05))) +
-  ggplot2::scale_fill_viridis_d(guide = guide_legend(ncol = 1)) +
-  ggplot2::facet_grid(rows= vars(IslandName), cols = vars(ReserveStatus), scales = "free") +
-  ggplot2::labs(title = "Targeted Invertebrates", x = "Survey Year", y = "Mean Biomass (g/m²)", 
-                fill = NULL) +
-  Biomass_Summary_theme()
-```
-
 ```{r Fish All, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=11}
 Fish_Bio <- Biomass |> 
   dplyr::filter(Classification %in% c("Fish"),
                 CommonName %in% c("Targeted", "Non-targeted"))
 
-ggplot2::ggplot(data = Fish_Bio, aes(x = SurveyYear, y = Mean_Biomass/2000, fill = CommonName)) +
+ggplot2::ggplot(data = Fish_Bio, aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
   ggplot2::geom_area(position = "stack", stat = "smooth") + 
   ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by, expand = c(0, 0.01)) +
   ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .05))) +
@@ -565,7 +579,7 @@ Fish_Bio <- Biomass |>
                   "Targeted", "Non-targeted",
                   "Herbivore", "Planktivore", "Carnivore", "Piscovore"))
 
-ggplot2::ggplot(data = Fish_Bio, aes(x = SurveyYear, y = Mean_Biomass/2000, fill = CommonName)) +
+ggplot2::ggplot(data = Fish_Bio, aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
   ggplot2::geom_area(position = "stack", stat = "smooth") + 
   ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by, expand = c(0, 0.01)) +
   ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .05))) +
@@ -585,7 +599,7 @@ Fish_Bio <- Biomass |>
                   "Targeted", "Non-targeted",
                   "Herbivore", "Planktivore", "Carnivore", "Piscovore"))
 
-ggplot2::ggplot(data = Fish_Bio, aes(x = SurveyYear, y = Mean_Biomass/2000, fill = CommonName)) +
+ggplot2::ggplot(data = Fish_Bio, aes(x = SurveyYear, y = Mean_Biomass, fill = CommonName)) +
   ggplot2::geom_area(position = "stack", stat = "smooth") + 
   ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by, expand = c(0, 0.01)) +
   ggplot2::scale_y_continuous(expand = expansion(mult = c(0, .05))) +

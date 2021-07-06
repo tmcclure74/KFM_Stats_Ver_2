@@ -736,10 +736,11 @@ Year_to_Filter_Data_by <- 2019
   }
   
   { # Mean Biomass Plot   ----
-    Mean_Biomass_Plot <- function(Sci_Name, Com_Name) {
+    Mean_Biomass_Plot <- function(Sci_Name, Com_Name, Class) {
       DF <- Biomass |> 
         dplyr::filter(ScientificName == Sci_Name,
-                      CommonName == Com_Name)
+                      CommonName == Com_Name, 
+                      Classification == Class)
       
       p1 <- p_1 +
         ggplot2::geom_smooth(data = DF, aes(x = Date, y = Mean_Biomass, color = ReserveStatus),

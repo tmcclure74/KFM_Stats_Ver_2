@@ -56,9 +56,9 @@ giant_spined_sea_star,giant-spined sea star,Pisaster giganteus,Biomass,Invertebr
 red_sea_urchin,red sea urchin,Strongylocentrotus franciscanus,Biomass,Invertebrate,Targeted
 purple_sea_urchin,purple sea urchin,Strongylocentrotus purpuratus,Biomass,Invertebrate,Non-targeted
 rock_scallop,rock scallop,Crassedoma giganteum,Biomass,Invertebrate,Targeted
-pink_abalone,pink abalone,Haliotis corrugata,Biomass,Invertebrate,Targeted
-green_abalone,green abalone,Haliotis fulgens,Biomass,Invertebrate,Targeted
-red_abalone,red abalone,Haliotis rufescens,Biomass,Invertebrate,Targeted
+pink_abalone,pink abalone,Haliotis corrugata,Biomass,Invertebrate,Non-targeted
+green_abalone,green abalone,Haliotis fulgens,Biomass,Invertebrate,Non-targeted
+red_abalone,red abalone,Haliotis rufescens,Biomass,Invertebrate,Non-targeted
 Kellets_whelk,Kellet's whelk,Kelletia kelletii,Biomass,Invertebrate,Targeted
 red_gorgonian,red gorgonian,Lophogorgia chilensis,Biomass,Invertebrate,Non-targeted
 white_sea_urchin,white sea urchin,Lytechinus anamesus,Biomass,Invertebrate,Non-targeted
@@ -72,7 +72,7 @@ California_golden_gorgonian,California golden gorgonian,Muricea californica,Biom
 queen_tegula,queen tegula,Tegula regina,Biomass,Invertebrate,Non-targeted
 shannon_2005,Shannon Index,Shannon Index,Index Value,Calculated Value,Calculated Value
 richness_2005,Richness,Richness,Index Value,Calculated Value,Calculated Value
-simpson,Simpson Index,Simpson Index,Index Value,Calculated Value,Calculated Value
+simpson_2005,Simpson Index,Simpson Index,Index Value,Calculated Value,Calculated Value
 copper_rockfish,copper rockfish,Sebastes caurinus,Count,Fish,Targeted
 kelp_surfperch,kelp surfperch,Brachyistius frenatus,Count,Fish,Non-targeted
 painted_greenling,painted greenling,Oxylebius pictus,Count,Fish,Non-targeted
