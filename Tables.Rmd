@@ -1,0 +1,73 @@
+---
+output: word_document
+knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding,
+  output_dir = "Output_Documents") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning =  FALSE)
+knitr::opts_chunk$set(results = 'asis')
+source("global.R")
+
+Groups <- Species_Info |> 
+  dplyr::filter(ScientificName %in% c(Benthic_Biomass_Species, Fish_Biomass_Species)) |> 
+  dplyr::select(Classification, ScientificName, CommonName, Trophic_Broad, Targeted_Broad) |> 
+  dplyr::mutate(CommonName = gsub(", adult", "", CommonName),
+                CommonName = gsub(", male", "", CommonName),
+                CommonName = gsub("[(>)]", "", CommonName),
+                CommonName = gsub(" 1m", "", CommonName)) |> 
+  dplyr::distinct(ScientificName, .keep_all = TRUE) |> 
+  dplyr::arrange(Classification, Trophic_Broad, Targeted_Broad) |> 
+  dplyr::rename(`Scientific Name` = ScientificName, 
+                `Common Name` = CommonName, 
+                `Fishery Status` = Targeted_Broad, 
+                `Trophic Level` = Trophic_Broad)
+
+
+Fish_Regression_Table <- readr::read_csv("Meta_Data/Fish_Regression.csv")
+
+Benthic_Regression_Table <- readr::read_csv("Meta_Data/Benthic_Regression.csv")
+```
+
+```{r GLMM Tables, results = 'asis'}
+# Make me a loop with all relevant tables
+GLMM <- GLMM_Results %>% 
+  dplyr::filter(`Response Variable` == "shannon_2005") |> 
+  dplyr::select(-`Response Variable`, -`VIF Score`)
+knitr::kable(GLMM)
+```
+
+
+```{r Groups}
+knitr::kable(Groups)
+```
+
+```{r RF Important Species}
+RF_VI <- RF_Importance %>%  
+  dplyr::mutate(CommonName = gsub("B", "", CommonName),
+                CommonName = gsub("C", "", CommonName),
+                CommonName = gsub("P", "", CommonName),
+                CommonName = gsub("I", "", CommonName),
+                CommonName = gsub("Cg", "", CommonName),
+                CommonName = gsub("[()]", "", CommonName),
+                Rank = order(desc(MeanDecreaseAccuracy))) |> 
+  dplyr::select(Rank, ScientificName, CommonName, Data_Type, 
+                Targeted, MeanDecreaseAccuracy, MeanDecreaseGini) |> 
+  dplyr::rename(`Scientific Name` = ScientificName, 
+                `Common Name` = CommonName, 
+                `Fishery Status` = Targeted, 
+                `Data Type` = Data_Type)
+knitr::kable(RF_VI)
+```
+
+```{r Regression Values}
+knitr::kable(Fish_Regression_Table) 
+knitr::kable(Benthic_Regression_Table) 
+```
+
+
+
+
+

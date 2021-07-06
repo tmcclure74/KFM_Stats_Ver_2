@@ -1,0 +1,21 @@
+CommonName,ScientificName,Targeted_Broad,Trophic_Broad
+"giant kelp, adult (>1m)",Macrocystis pyrifera,Targeted,Producer
+orange puffball sponge,Tethya aurantia,Non-targeted,Planktivore
+red gorgonian,Lophogorgia chilensis,Non-targeted,Planktivore
+brown gorgonian,Muricea fruticosa,Non-targeted,Planktivore
+California golden gorgonian,Muricea californica,Non-targeted,Planktivore
+red abalone,Haliotis rufescens,Targeted,Herbivore
+pink abalone,Haliotis corrugata,Targeted,Herbivore
+green abalone,Haliotis fulgens,Targeted,Herbivore
+Kellet's whelk,Kelletia kelletii,Targeted,Carnivore
+wavy turban snail,Megastraea undosa,Targeted,Carnivore
+red turban snail,Lithopoma gibberosa,Targeted,Herbivore
+giant keyhole limpet,Megathura crenulata,Non-targeted,Herbivore
+rock scallop,Crassedoma giganteum,Targeted,Planktivore
+queen tegula,Tegula regina,Non-targeted,Herbivore
+bat star,Patiria miniata,Non-targeted,Carnivore
+giant-spined sea star,Pisaster giganteus,Non-targeted,Carnivore
+sunflower star,Pycnopodia helianthoides,Non-targeted,Carnivore
+white sea urchin,Lytechinus anamesus,Non-targeted,Herbivore
+red sea urchin,Strongylocentrotus franciscanus,Targeted,Herbivore
+purple sea urchin,Strongylocentrotus purpuratus,Non-targeted,Herbivore
