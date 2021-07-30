@@ -406,8 +406,9 @@ Export_END_Year <- 2019
         "senorita, all", "striped surfperch, all")) |> 
       dplyr::group_by(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear, Date, 
                       ScientificName, CommonName, ReserveStatus, Reference) |>
+      dplyr::mutate(Count = replace_na(Count, 0)) %>%
       dplyr::summarise(Count = mean(Count, na.rm = TRUE)) |> 
-      dplyr::mutate(Count = ifelse(Count > 0 & Count < 1, 1, round(Count, 0))) |> 
+      dplyr::mutate(Count = ifelse(Count > 0 & Count < 1, 1, round(Count, 0))) |>
       dplyr::ungroup() 
     # |> 
     # arrow::write_feather("Tidy_Data/RDFC_Count.feather")
@@ -448,14 +449,6 @@ Export_END_Year <- 2019
   { # All Density    ----
     
     RDFC_Density_CSV <- RDFC_Density |> 
-      dplyr::select(-ScientificName) |>
-      tidyr::pivot_wider(names_from = CommonName, values_from = Count, values_fill = 0) |>
-      tidyr::pivot_longer(cols = 10:161, names_to = "CommonName", values_to = "Count") |>
-      dplyr::distinct(.keep_all = TRUE) |> 
-      dplyr::left_join(
-        Species_Info |>
-          dplyr::select(ScientificName, CommonName) |>
-          dplyr::distinct()) |>
       dplyr::mutate(Survey_Type = "RDFC", 
                     Mean_Density = Count / 2000)
     
@@ -468,8 +461,7 @@ Export_END_Year <- 2019
       dplyr::left_join(
         Species_Info |>
           dplyr::select(ScientificName, Species, CommonName, Classification) |>
-          dplyr::distinct()) |>
-      dplyr::filter(!is.na(Species)) |>    
+          dplyr::distinct()) |>    
       dplyr::left_join(
         Site_Info |>
           dplyr::select(SiteName, ReserveYear, MeanDepth, Latitude, Longitude)) |> 

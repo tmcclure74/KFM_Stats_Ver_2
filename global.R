@@ -22,6 +22,9 @@ Year_to_Filter_Data_by <- 2019
   
   Species_Info <- readr::read_csv("Meta_Data/Species_Complete.csv")
   
+  Mixed_Data_xRef_Biomass <- readr::read_csv("Meta_Data/Mixed_Data_xref_Fish_Biomass.csv")
+  
+  Mixed_Data_xRef_Density <- readr::read_csv("Meta_Data/Mixed_Data_xref_Fish_Density.csv")
   
   Benthic_Biomass_Species <- c(
     "Macrocystis pyrifera", "giant kelp",
@@ -736,11 +739,10 @@ Year_to_Filter_Data_by <- 2019
   }
   
   { # Mean Biomass Plot   ----
-    Mean_Biomass_Plot <- function(Sci_Name, Com_Name, Class) {
+    Mean_Biomass_Plot <- function(Sci_Name, Com_Name) {
       DF <- Biomass |> 
         dplyr::filter(ScientificName == Sci_Name,
-                      CommonName == Com_Name, 
-                      Classification == Class)
+                      CommonName == Com_Name)
       
       p1 <- p_1 +
         ggplot2::geom_smooth(data = DF, aes(x = Date, y = Mean_Biomass, color = ReserveStatus),

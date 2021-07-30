@@ -31,6 +31,78 @@ Fish_Regression_Table <- readr::read_csv("Meta_Data/Fish_Regression.csv")
 Benthic_Regression_Table <- readr::read_csv("Meta_Data/Benthic_Regression.csv")
 ```
 
+```{r Trophic Interaction GLMMs, fig.height=10.5, fig.width=7.5}
+
+options(scipen = 999)
+
+purps <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    purple_sea_urchin ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      IslandCode + (1 | SurveyYear))) |> 
+  base::as.data.frame() |> 
+  tibble::rownames_to_column(var = "Predictor Variable") |> 
+  dplyr::arrange(`Pr(>F)`) |> 
+  dplyr::mutate(`F` = round(`F`, 3),
+                `Pr(>F)` = round(`Pr(>F)`, 3),
+                `Pr(>F)` = ifelse(`Pr(>F)` < 0.001, "< 0.001", as.character(`Pr(>F)`))) |> 
+  dplyr::rename(`P-Value` =`Pr(>F)`) |> 
+  dplyr::select(-Df.res)
+knitr::kable(purps)
+
+reds <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    red_sea_urchin ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      IslandCode + (1 | SurveyYear))) |> 
+  base::as.data.frame() |> 
+  tibble::rownames_to_column(var = "Predictor Variable") |> 
+  dplyr::arrange(`Pr(>F)`) |> 
+  dplyr::mutate(`F` = round(`F`, 3),
+                `Pr(>F)` = round(`Pr(>F)`, 3),
+                `Pr(>F)` = ifelse(`Pr(>F)` < 0.001, "< 0.001", as.character(`Pr(>F)`))) |> 
+  dplyr::rename(`P-Value` =`Pr(>F)`) |> 
+  dplyr::select(-Df.res)
+knitr::kable(reds)
+
+
+whites <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    white_sea_urchin ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      IslandCode + (1 | SurveyYear))) |> 
+  base::as.data.frame() |> 
+  tibble::rownames_to_column(var = "Predictor Variable") |> 
+  dplyr::arrange(`Pr(>F)`) |> 
+  dplyr::mutate(`F` = round(`F`, 3),
+                `Pr(>F)` = round(`Pr(>F)`, 3),
+                `Pr(>F)` = ifelse(`Pr(>F)` < 0.001, "< 0.001", as.character(`Pr(>F)`))) |> 
+  dplyr::rename(`P-Value` =`Pr(>F)`) |> 
+  dplyr::select(-Df.res)
+knitr::kable(whites)
+
+kelp <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    giant_kelp ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      white_sea_urchin * red_sea_urchin * purple_sea_urchin +
+      IslandCode + (1 | SurveyYear))) |> 
+  base::as.data.frame() |> 
+  tibble::rownames_to_column(var = "Predictor Variable") |> 
+  dplyr::arrange(`Pr(>F)`) |> 
+  dplyr::mutate(`F` = round(`F`, 3),
+                `Pr(>F)` = round(`Pr(>F)`, 3),
+                `Pr(>F)` = ifelse(`Pr(>F)` < 0.001, "< 0.001", as.character(`Pr(>F)`))) |> 
+  dplyr::rename(`P-Value` =`Pr(>F)`) |> 
+  dplyr::select(-Df.res)
+knitr::kable(kelp)
+
+```
+
 ```{r GLMM Tables, results = 'asis'}
 # Make me a loop with all relevant tables
 GLMM <- GLMM_Results %>% 
@@ -55,7 +127,11 @@ GLMM_Vars <- c("shannon_2005",
                "giant_kelp",
                "purple_sea_urchin",
                "kelp_bass",
-               "sunflower_star")
+               "sunflower_star",
+               "giant_spined_sea_star",
+               "Coronado_urchin",
+               "red_abalone",
+               "rock_wrasse")
 
 for (rv in GLMM_Vars) {
   

@@ -14,16 +14,120 @@ knitr::opts_chunk$set(message = FALSE)
 source("global.R")
 ```
 
-```{r}
-Annual_Temp <- Temp_Anom_Table %>%
-  dplyr::group_by(SurveyYear, Mean_ONI_Anom) %>%
-  dplyr::summarise(Annual_Anom_All = mean(Mean_KFM_Anom))
+## ONI
 
-ggplot(data = Annual_Temp,
-           aes(x = Mean_ONI_Anom, y = Annual_Anom_All, color = SurveyYear)) +
-      geom_smooth(method = "lm",formula = 'y ~ x') +
-      geom_point()
+```{r ONI plot, message=FALSE, warning=FALSE, fig.height=4, fig.width=8.5}
+oni <- read.table( # Read in  ONI to be added to all data
+      "https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/detrend.nino34.ascii.txt",
+      header = T) %>%
+      dplyr::mutate(Date = as.Date(ISOdate(YR, MON, 1)),
+                    DateStart = as.Date(ISOdate(YR, MON, 1)),
+                    DateEnd = ceiling_date(DateStart, "month")) %>%
+      dplyr::rename(ONI_ANOM = ANOM,
+                    Month = MON,
+                    SurveyYear = YR)
+ggplot(oni, aes(x = Date, y = ONI_ANOM, fill = ONI_ANOM)) +
+  geom_hline(size = 1, yintercept = c(-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5),
+             color = c("blue4", "blue","deepskyblue2", "white", "black", 
+                       "white", "gold2", "orange2", "red", "red4")) +
+  geom_bar(stat = "identity") +
+  scale_x_date(date_labels = "%Y", date_breaks = "2 year",
+               expand = c(0.01,0)) +
+  labs(title = "Oceanic Nino Index (ONI)",
+       subtitle = "Nino Region 3.4 (5°N-5°S,120°-170°W)",
+       fill = "Anomaly Intensity (°C)",
+       x = NULL, y = "Sea Surface Temperature Anomaly (°C)") +
+  scale_y_continuous(
+    breaks = c(-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5),
+    labels = c(-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5),
+    sec.axis = sec_axis(
+      ~. * 1,
+      breaks = c(-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5),
+      labels = c("-2", "Strong La Nina", "Moderate La Nina", 
+                 "Weak La Nina", "Neutral", "Weak El Nino",
+                 "Moderate El Nino", "Strong El Nino", 
+                 "Very Strong El Nino", "2.5"))) +
+  scale_fill_viridis_c(option = "plasma") +
+  geom_vline(size = 1, xintercept = as.Date("1978-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("1978-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "Old MPA"),
+             hjust = 1, vjust = 1, size = 3, inherit.aes = FALSE) +
+  geom_vline(size = 1, xintercept = as.Date("1982-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("1982-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "KFM begins"),
+             hjust = 0, vjust = 1, size = 3, inherit.aes = FALSE) +
+  geom_vline(size = 1, xintercept = as.Date("2003-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("2003-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "New MPAs"),
+             hjust = 1, vjust = 1, size = 3, inherit.aes = FALSE) +
+  geom_vline(size = 1, xintercept = as.Date("2005-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("2005-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "New Sites"),
+             hjust = 0, vjust = 1, size = 3, inherit.aes = FALSE) +
+  theme_dark() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 12),
+        plot.subtitle = element_text(hjust = 0.5, size = 11),
+        axis.title = element_text(size = 10),
+        axis.text.y = element_text(angle = 0, size = 10),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 10),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"))
+```
 
+## PDO
+
+```{r PDO plot, message=FALSE, warning=FALSE, fig.height=4, fig.width=8.5}
+pdo <- read.table(
+      "https://www.cpc.ncep.noaa.gov/products/GODAS/PDO/pdo_h300_pac_current.txt",
+      header = T)  %>%
+      dplyr::mutate(Date = as.Date(ISOdate(Year, Month, 1)),
+                    DateStart = as.Date(ISOdate(Year, Month, 1)),
+                    DateEnd = ceiling_date(DateStart, "month")) %>%
+      dplyr::rename(PDO_ANOM = PDO,
+                    SurveyYear = Year)
+ggplot(pdo, aes(x = Date, y = PDO_ANOM, fill = PDO_ANOM)) +
+  geom_hline(size = 1, yintercept = c(-2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5),
+             color = c("darkblue", "blue2", "dodgerblue2","deepskyblue2", "white", "black", 
+                       "white", "gold2", "orange2", "red", "red4")) +
+  geom_col() +
+  geom_smooth(se = FALSE, span = 0.75, color = "deeppink") +
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+               expand = c(0.01,0)) +
+  labs(title = "H300 based Pacific Decadal Oscillation (HPDO)",
+       fill = "Monthly Mean H300 Anomalies",
+       x = NULL, y = "Monthly Mean H300 Anomalies") +
+  scale_y_continuous(
+    breaks = c(-2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5),
+    labels = c(-2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5)) +
+  scale_fill_viridis_c(option = "plasma") +
+  geom_vline(size = 1, xintercept = as.Date("1978-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("1978-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "Old MPA"),
+             hjust = 1, vjust = 1, size = 3, inherit.aes = FALSE) +
+  geom_vline(size = 1, xintercept = as.Date("1982-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("1982-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "KFM begins"),
+             hjust = 0, vjust = 1, size = 3, inherit.aes = FALSE) +
+  geom_vline(size = 1, xintercept = as.Date("2003-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("2003-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "New MPAs"),
+             hjust = 1, vjust = 1, size = 3, inherit.aes = FALSE) +
+  geom_vline(size = 1, xintercept = as.Date("2005-01-01", format = "%Y-%m-%d")) +
+  geom_label(x = as.Date("2005-01-01", format = "%Y-%m-%d"),
+             y = Inf, aes(label = "New Sites"),
+             hjust = 0, vjust = 1, size = 3, inherit.aes = FALSE) +
+  theme_dark() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 12),
+        plot.subtitle = element_text(hjust = 0.5, size = 11),
+        axis.title = element_text(size = 10),
+        axis.text.y = element_text(angle = 0, size = 10),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 10),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"))
 ```
 
 ## Sha Ind
@@ -144,7 +248,6 @@ p <- ggplot2::ggplot() +
                       aes(x = -Inf, y = Inf, label = Rank),
                       hjust = 0, vjust = 1, size = 4) +
   ggplot2::scale_color_manual(values = Target_Colors, limits = force) +
-  # ggplot2::scale_color_viridis_d(end = 0.95) +
   ggplot2::scale_y_continuous(expand = c(0, 0.01)) +
   ggplot2::scale_x_continuous(expand = c(0, 0)) +
   ggplot2::labs(x = NULL, y = NULL, color = NULL) +
@@ -160,48 +263,119 @@ print(p1)
 print(p2)
 ```
 
-```{r RD PDP individual, warning=FALSE, message=FALSE}
+```{r RD PDP individual, warning=FALSE, message=FALSE, fig.height=2, fig.width=3}
 # Choose any variable to plot PDP
-Imp_Num <- 36
-pdp::partial(RF_Reserve_Model_2005,
-                    pred.var = RF_Importance$Common_Name[Imp_Num],
-                    train = Mixed_2005, plot = TRUE, rug = TRUE,
-                    plot.engine = "ggplot2") +
-    ggplot2::labs(title = gsub("_", " ", RF_Importance$Common_Name[Imp_Num]),
-         x = RF_Importance$Data_Type[Imp_Num], y = NULL, color = NULL) +
-    theme_classic() +
-    theme(plot.title = element_text(hjust = .5, size = 10),
-          axis.title = element_text(size = 9))
+
+Imp_Num <- 39
+
+pdp <- lapply(RF_Importance$Common_Name[Imp_Num], function(i){
+  partial(RF_Reserve_Model_2005, pred.var = i) |>
+    data.frame() |>
+    dplyr::mutate(Common_Name = i) |>
+    dplyr::rename(x_var = i)
+})
+pdp2 <- pdp
+# pdp2[[20]][["x_var"]] <- as.numeric(pdp2[[20]][["x_var"]])
+part_df <- bind_rows(pdp2) |>
+  dplyr::left_join(Mixed_Data_xRef_Biomass) |> 
+  dplyr::mutate(CommonName = paste(CommonName, " (", Data_Type, ")", sep = ""),
+                CommonName = gsub(" biomass", "", CommonName),
+                CommonName = gsub("Biomass", "B", CommonName),
+                CommonName = gsub("Count", "C", CommonName),
+                CommonName = gsub("Percent Cover", "P", CommonName),
+                CommonName = gsub("Index Value", "I", CommonName),
+                CommonName = gsub("Categorical", "Cg", CommonName),
+                CommonName = fct_inorder(CommonName)) |>
+  dplyr::mutate(Rank = as.integer(CommonName)) 
+
+
+ggplot2::ggplot() +
+  ggplot2::geom_smooth(data = part_df, show.legend = F,
+                       method = 'loess', formula = 'y ~ x', se = FALSE, size = 1.25, 
+                       aes(x = x_var, y = yhat, color = Targeted)) + 
+  ggplot2::geom_label(label.size = 0,
+                      aes(x = -Inf, y = Inf, label = Imp_Num),
+                      hjust = 0, vjust = 1, size = 4) +
+  ggplot2::scale_color_manual(values = Target_Colors, limits = force) +
+  ggplot2::scale_y_continuous(expand = c(0, 0.01)) +
+  ggplot2::scale_x_continuous(expand = c(0, 0)) +
+  ggplot2::labs(x = NULL, y = NULL, color = NULL, title = part_df$CommonName) +
+  ggplot2::theme_minimal() +
+  PDP_theme() +
+  ggplot2::theme(plot.title = element_text(hjust = 0.5, size = 10))
+```
+
+```{r Trophic Interaction GLMMs, fig.height=10.5, fig.width=7.5}
+
+options(scipen = 999)
+
+purps <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    purple_sea_urchin ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      IslandCode + (1 | SurveyYear)))
+knitr::kable(purps)
+
+reds <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    red_sea_urchin ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      IslandCode + (1 | SurveyYear)))
+knitr::kable(reds)
+
+
+whites <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    white_sea_urchin ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      IslandCode + (1 | SurveyYear)))
+knitr::kable(whites)
+
+kelp <- car::Anova(
+  test = "F",
+  lme4::lmer(
+    data = Mixed_2005,
+    giant_kelp ~ California_spiny_lobster * California_sheephead_male * California_sheephead_female * sunflower_star * giant_spined_sea_star + 
+      white_sea_urchin * red_sea_urchin * purple_sea_urchin +
+      IslandCode + (1 | SurveyYear)))
+knitr::kable(kelp)
+
 ```
 
 ## Ind Spe Ana
 
 ```{r ISA with New Density DF, fig.width=10, fig.height=7.5}
+
+# fishy <- readr::read_csv("../KFM_Stats/Tidy_Data_Dont_Touch/Fish_Counts.csv")
+# benny <- readr::read_csv("../KFM_Stats/Tidy_Data_Dont_Touch/Benthic_Counts.csv")
+# 
+# Denny <- fishy %>%
+#     full_join(benny) 
+
 Density_Wide <- Density |> 
-  dplyr::filter(!Survey_Type %in% c("VFT", "RPC"), 
+  dplyr::filter(!Survey_Type %in% c("VFT", "RPC"),
+                
                 !ScientificName %in% c(
                   "Alloclinus holderi", "Coryphopterus nicholsi", "Lythrypnus dalli") | 
-                  Survey_Type == "1 m² quads") |> 
+                  Survey_Type == "1 m² quads",
+                !CommonName %in% c(
+                  "giant kelp, adult (>1m and haptera above the primary dichotomy)",
+                  "giant kelp, subadult (>1m and no haptera above the primary dichotomy)",
+                  "Sargassum horneri, juvenile (<50cm and no recepticles)",
+                  "Sargassum horneri, adult (>50cm or recepticles present)",
+                  "wakame, adult",
+                  "wakame, juvenile"
+                )) |> 
   dplyr::select(SiteNumber, IslandCode, IslandName, SiteCode, SiteName, SurveyYear, 
-                ReserveStatus, CommonName, Count) |> 
-  tidyr::pivot_wider(names_from = "CommonName", values_from = "Count", values_fill = 0) |> 
-  dplyr::rename_with(~ base::gsub(",", "", .)) |> 
-  dplyr::rename_with(~ base::gsub(" ", "_", .)) |> 
-  dplyr::rename_with(~ base::gsub("-", "_", .)) |> 
-  dplyr::rename_with(~ base::gsub("'", "", .)) |> 
-  dplyr::rename_with(~ base::gsub("<", "", .)) |> 
-  dplyr::rename_with(~ base::gsub(">", "", .)) |> 
-  dplyr::rename_with(~ base::gsub("1", "", .)) |> 
-  dplyr::rename_with(~ base::gsub("0", "", .)) |> 
-  dplyr::rename_with(~ base::gsub("5", "", .)) |> 
-  dplyr::rename_with(~ base::gsub("[()]", "", .)) |> 
-  dplyr::rename(giant_kelp_subadult = giant_kelp_subadult_m_and_no_haptera_above_the_primary_dichotomy,
-                giant_kelp_adult = giant_kelp_adult_m_and_haptera_above_the_primary_dichotomy,
-                Sargassum_horneri_adult = Sargassum_horneri_adult_cm_or_recepticles_present,
-                Sargassum_horneri_juvenile = Sargassum_horneri_juvenile_cm_and_no_recepticles) %>% 
-  dplyr::select(1:7, sort(names(.)))
+                ReserveStatus,
+                ScientificName,
+                Count) |> 
+  tidyr::pivot_wider(names_from = "ScientificName", values_from = "Count", values_fill = 0, values_fn = sum) 
 
-indic_spp_table <- dplyr::data_frame(
+indic_spp_table <- dplyr::tibble(
   ScientificName = character(), s.SR = double(), s.SC = double(), 
   s.AN = double(), s.SB = double(), index = integer(), stat = double(),
   p.value = double(), Year = integer(), ReserveStatus = character())
@@ -295,11 +469,6 @@ Inside_full_heat_table <-  base::data.frame(
 
 full_heat_table <- rbind(Outside_full_heat_table, Inside_full_heat_table)
 
-# short_names <- Species_Info %>% 
-#   dplyr::select(ScientificName, ScientificName_Short_Form, Classification, Class_Short) %>% 
-#   dplyr::filter(ScientificName %in% unique(indic_spp_table$ScientificName)) %>% 
-#   dplyr::distinct()
-
 heat_map <- dplyr::left_join(
   full_heat_table, heat_map_data, by=c(
     "IslandName", "Year", "ScientificName", "ReserveStatus")) %>%
@@ -309,21 +478,12 @@ heat_map <- dplyr::left_join(
   dplyr::group_by(IslandName, ScientificName, ReserveStatus) %>% 
   dplyr::mutate(frequency = length(stat[!is.na(stat)])) %>% 
   dplyr::ungroup() %>% 
-  # dplyr::left_join(short_names) %>%
-  dplyr::arrange(# desc(Class_Short), 
-                 desc(frequency), desc(ReserveStatus)) 
+  dplyr::arrange(desc(frequency), desc(ReserveStatus)) 
 
 z <- 1
 for(i in levels(heat_map$IslandName)) {
   Island_Heat_Data <- heat_map %>% 
     dplyr::filter(IslandName == i) 
-  
-  # Island_Heat_Data$ScientificName_Short_Form = fct_rev(
-  #   factor(Island_Heat_Data$ScientificName_Short_Form, 
-  #          levels = unique(Island_Heat_Data$ScientificName_Short_Form)))
-  
-  # Island_Heat_Data$Classification = factor(
-  #   Island_Heat_Data$Classification, levels = c("Fish", "Invertebrates", "Algae"))
   
   p <- ggplot2::ggplot() +
     geom_tile(data = Island_Heat_Data,
@@ -333,6 +493,150 @@ for(i in levels(heat_map$IslandName)) {
     ggplot2::scale_fill_gradient2(low = scales::muted("lightgreen"), 
                                   high = "forestgreen", na.value = scales::muted("firebrick")) + 
     ggplot2::facet_grid(#rows = vars(Classification), 
+                        cols = vars(ReserveStatus), scales = "free", space = "free") +
+    ggplot2::labs(title = i, x = "Year", y = "Species/Taxa", 
+                  fill = paste("Strength of", "\n", "Association")) +
+    ISA_theme()
+  unique_plotname <- paste("ISA.", z, sep = "")
+  assign(unique_plotname, p)
+  z <- z + 1
+}
+ISA.1
+ISA.2
+ISA.3
+ISA.4
+```
+
+```{r ISA with top 30, fig.width=10, fig.height=7.5}
+
+Species_to_Use <- RF_Importance |> 
+  dplyr::filter(Classification != "Mixed",
+                !Data_Type %in% c("Categorical", "Index Value"),
+                Targeted != "Calculated Value") |> 
+  utils::head(30) |> 
+  base::getElement('Common_Name')
+
+ISA_30 <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
+  dplyr::select(SiteNumber, IslandCode, IslandName, SiteName, 
+                Species_to_Use,
+                SiteCode, SurveyYear, ReserveStatus)
+
+indic_spp_table <- dplyr::tibble(
+  ScientificName = character(), s.SR = double(), s.SC = double(), 
+  s.AN = double(), s.SB = double(), index = integer(), stat = double(),
+  p.value = double(), Year = integer(), ReserveStatus = character())
+
+for (h in base::unique(ISA_30$ReserveStatus)) {
+  for (k in base::unique(ISA_30$SurveyYear)) {
+    Indic_Spp <- ISA_30 %>%
+      dplyr::filter(ReserveStatus %in% h,
+                    SurveyYear %in% k) %>%
+      dplyr::select(-SiteNumber, -IslandCode, -IslandName, -SiteName, -SiteCode, -SurveyYear, -ReserveStatus) %>%
+      indicspecies::multipatt(multipatt_island_list, func = "r.g", control = how(nperm = 1000)) %>% 
+      base::getElement('sign') %>%
+      tibble::rownames_to_column("ScientificName") %>%
+      dplyr::mutate(Year = k, ReserveStatus = h) %>%
+      dplyr::filter(p.value < 0.05) 
+    indic_spp_table <- base::rbind(indic_spp_table, Indic_Spp)
+  }
+}
+
+indic_sites <- c("s.SR", "s.SC", "s.AN", "s.SB")
+
+for (h in base::unique(ISA_30$ReserveStatus)) {
+  for (i in indic_sites) {
+    Spp_List <- indic_spp_table %>%
+      dplyr::filter(!!as.symbol(i) == 1, ReserveStatus %in% h) %>%
+      base::getElement('ScientificName') %>%
+      base::unique() 
+    
+    unique_spplist <- base::paste(h, i, "_Spp_List", sep = "")
+    base::assign(unique_spplist, Spp_List)
+  }
+}
+
+heat_map_data <- base::data.frame(
+  ScientificName = character(), stat = double(), p.value = double(),
+  year = integer(), IslandName = character(), ReserveStatus = character())
+
+for (h in base::unique(ISA_30$ReserveStatus)) {
+  for (z in indic_sites) {
+    Spp_Scores <- indic_spp_table %>%
+      dplyr::filter(!!as.symbol(z) == 1, ReserveStatus %in% h) %>%
+      dplyr::mutate(IslandName = z, ReserveStatus = h)
+    heat_map_data <- heat_map_data %>%
+      base::rbind(Spp_Scores)
+  }
+}
+
+heat_map_data <- dplyr::select(
+  heat_map_data, ScientificName, stat, p.value, Year, IslandName, ReserveStatus)
+
+Outside_Heat_Species <- 
+  base::rep(c(Outsides.SR_Spp_List, Outsides.SC_Spp_List,
+              Outsides.AN_Spp_List, Outsides.SB_Spp_List), 
+            times = base::length(unique(heat_map_data$Year)))
+Inside_Heat_Species <- 
+  base::rep(c(Insides.SR_Spp_List, Insides.SC_Spp_List, 
+              Insides.AN_Spp_List, Insides.SB_Spp_List), 
+            times = base::length(base::unique(heat_map_data$Year)))
+Outside_Heat_Sites <- 
+  base::rep(c((base::rep("s.SR", each = base::length(Outsides.SR_Spp_List))), 
+              (base::rep("s.SC", each = base::length(Outsides.SC_Spp_List))), 
+              (base::rep("s.AN", each = base::length(Outsides.AN_Spp_List))), 
+              (base::rep("s.SB", each = base::length(Outsides.SB_Spp_List)))),
+            times = base::length(base::unique(heat_map_data$Year)))
+Inside_Heat_Sites <- 
+  base::rep(c((base::rep("s.SR", each = base::length(Insides.SR_Spp_List))), 
+              (base::rep("s.SC", each = base::length(Insides.SC_Spp_List))), 
+              (base::rep("s.AN", each = base::length(Insides.AN_Spp_List))), 
+              (base::rep("s.SB", each = base::length(Insides.SB_Spp_List)))),
+            times = base::length(base::unique(heat_map_data$Year)))
+Outside_Heat_Year <- 
+  base::rep((base::unique(heat_map_data$Year)), each = 
+              ((base::length(Outsides.SR_Spp_List))+
+                 (base::length(Outsides.SC_Spp_List))+
+                 (base::length(Outsides.AN_Spp_List))+
+                 (base::length(Outsides.SB_Spp_List))))
+Inside_Heat_Year <- 
+  base::rep((base::unique(heat_map_data$Year)), each = 
+              ((base::length(Insides.SR_Spp_List))+
+                 (base::length(Insides.SC_Spp_List))+
+                 (base::length(Insides.AN_Spp_List))+
+                 (base::length(Insides.SB_Spp_List))))
+Outside_full_heat_table <-  base::data.frame(
+  IslandName = Outside_Heat_Sites, Year = Outside_Heat_Year, 
+  ScientificName = Outside_Heat_Species, ReserveStatus = "Outside")
+
+Inside_full_heat_table <-  base::data.frame(
+  IslandName = Inside_Heat_Sites, Year = Inside_Heat_Year, 
+  ScientificName = Inside_Heat_Species, ReserveStatus = "Inside")
+
+full_heat_table <- base::rbind(Outside_full_heat_table, Inside_full_heat_table)
+
+heat_map <- dplyr::left_join(
+  full_heat_table, heat_map_data, by=c("IslandName", "Year", "ScientificName", "ReserveStatus")) %>%
+  dplyr::mutate(IslandName = dplyr::recode_factor(
+    IslandName, s.SR ="Santa Rosa Island", s.SC ="Santa Cruz Island",
+    s.AN ="Anacapa Island", s.SB ="Santa Barbara Island")) %>% 
+  dplyr::group_by(IslandName, ScientificName, ReserveStatus) %>% 
+  dplyr::mutate(frequency = length(stat[!is.na(stat)])) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::arrange(desc(frequency), desc(ReserveStatus)) 
+
+z <- 1
+for(i in levels(heat_map$IslandName)) {
+  Island_Heat_Data <- heat_map %>% 
+    dplyr::filter(IslandName == i) 
+  
+  p <- ggplot2::ggplot() +
+    geom_tile(data = Island_Heat_Data,
+              aes(x = Year, y = ScientificName, fill = stat), color = "black") +
+    ggplot2::scale_x_continuous(breaks = 2005:Year_to_Filter_Data_by, expand = c(0, 0)) +
+    ggplot2::scale_y_discrete(expand = c(0, 0)) +
+    ggplot2::scale_fill_gradient2(low = scales::muted("lightgreen"), 
+                                  high = "forestgreen", na.value = scales::muted("firebrick")) + 
+    ggplot2::facet_grid(rows = vars(IslandName), 
                         cols = vars(ReserveStatus), scales = "free", space = "free") +
     ggplot2::labs(title = i, x = "Year", y = "Species/Taxa", 
                   fill = paste("Strength of", "\n", "Association")) +
@@ -715,47 +1019,41 @@ p5
 ## Pis Gig
 
 ```{r Pisaster giganteus Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
-
+Mean_Biomass_Plot(Sci_Name = "Pisaster giganteus", Com_Name = "giant-spined sea star")
 ``` 
 
 ```{r Pisaster giganteus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
-
+Mean_Biomass_16_Plot(Sci_Name = "Pisaster giganteus")
 ```
 
 ## Cen Cor
 
 ```{r Centrostephanus coronatus Density Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
-
+Mean_Density_Plot(Sci_Name = "Centrostephanus coronatus")
 ``` 
 
 ```{r Centrostephanus coronatus original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
-
+Mean_Density_16_Plot(Sci_Name = "Centrostephanus coronatus", Com_Name = "Coronado urchin")
 ```
 
 ## Hal Ruf
 
 ```{r Haliotis rufescens Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
-
+Mean_Biomass_Plot(Sci_Name = "Haliotis rufescens", Com_Name = "red abalone")
 ``` 
 
 ```{r Haliotis rufescens original 16 sites, warning=FALSE, message=FALSE, fig.height=6, fig.width=10}
-
+Mean_Biomass_16_Plot(Sci_Name = "Haliotis rufescens")
 ```
 
-## Tables and Equations
+## Hal Sem Fem
 
-```{r Heat Map Summary and Cross Reference Tables}
-# heat_table_summary <- heat_map %>% 
-#   tidyr::drop_na() %>% 
-#   dplyr::group_by(ScientificName, Year) %>%
-#   dplyr::mutate(Distribution = n(),
-#                 Years = "Years") %>%
-#   dplyr::ungroup() %>%
-#   dplyr::filter(Distribution > 1) %>%
-#   dplyr::distinct(ScientificName, Year, Years) %>%
-#   dplyr::select(ScientificName, Year, Years) %>%
-#   dplyr::arrange(ScientificName, Year, Years)  %>%
-#   tidyr::pivot_wider(names_from = Years, values_from = Year, values_fn = list)
-# 
-# knitr::kable(heat_table_summary)
+```{r Halichoeres semicinctus fem Biomass Plots, warning=FALSE, message=FALSE, fig.height=8.5, fig.width=7.5}
+Mean_Biomass_Plot(Sci_Name = "Halichoeres semicinctus", Com_Name = "rock wrasse")
 ```
+
+```{r Halichoeres semicinctus fem original 16 sites, warning=FALSE, message=FALSE, fig.height=5, fig.width=9}
+Mean_Density_16_Plot(Sci_Name = "Halichoeres semicinctus",  
+                     Com_Name = c("rock wrasse, female", "rock wrasse, juvenile", "rock wrasse, male"))
+```
+
