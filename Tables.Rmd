@@ -35,6 +35,47 @@ Benthic_Regression_Table <- readr::read_csv("Meta_Data/Benthic_Regression.csv")
 
 options(scipen = 999)
 
+library(mgcv)
+
+Mod_df <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
+  dplyr::select(
+    !dplyr::contains(c(
+      "white_abalone", "wakame",
+      "opaleye_juvenile", "northern_ronquil",
+      "black_croaker","northern_anchovy",
+      "leopard_shark","California_halibut",
+      "wolf_eel", "monkeyface_prickleback",
+      "sarcastic_fringehead", "plainfin_midshipman",
+      "walleye_surfperch", "ocean_sunfish",
+      "cusk_eel", "gunnel", "finescale", "orangethroat"))) |>
+  dplyr::left_join(Annual_Temp_Anom) |> 
+  dplyr::mutate(SiteCode = as.factor(SiteCode),
+                IslandCode = as.factor(IslandCode),
+                ReserveStatus = as.factor(ReserveStatus))
+
+
+mod <- gam(
+  warty_sea_cucumber ~ s(SurveyYear, bs = 'cr') + 
+    ReserveStatus + IslandCode +
+    s(SurveyYear, by = ReserveStatus) +
+    s(SurveyYear, by = IslandCode) + 
+    s(SurveyYear, by = interaction(ReserveStatus, IslandCode), k = 2) +
+    s(SurveyYear, SiteCode, bs= 'fs'), 
+  data = Mod_df, method = 'REML', family = gaussian)
+
+sum_mod <- summary(mod)
+sum_mod
+a <- sum_mod$p.table
+a
+b <- sum_mod$s.table
+b
+
+
+
+
+
+
+
 purps <- car::Anova(
   test = "F",
   lme4::lmer(
