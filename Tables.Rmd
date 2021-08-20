@@ -38,7 +38,7 @@ options(scipen = 999)
 library(mgcv)
 library(gratia)
 
-Mod_df <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
+Mixed_2005 <- arrow::read_feather("Tidy_Data/Mixed_Data_2005.feather") |> 
   dplyr::select(
     !dplyr::contains(c(
       "white_abalone", "wakame",
@@ -60,7 +60,7 @@ mod <- gam(kelp_bass ~ ReserveStatus +
     Mean_ONI_Anom +
     te(SurveyYear, by = interaction(IslandCode, ReserveStatus), k = 15) + 
     s(SiteCode, bs= "re", k=20),
-  data = Mod_df, method = 'REML', family = nb())
+  data = Mixed_2005, method = 'REML', family = nb())
 
 gam.check(mod)
 gratia::appraise(mod, method = "simulate")
@@ -78,6 +78,26 @@ b
 
 ```{r Trophic Interaction GLMMs, fig.height=10.5, fig.width=7.5}
 
+
+#GAM attempt
+mod <- gam(red_sea_urchin ~ IslandCode +
+             s(California_spiny_lobster, k= 50) +
+             s(California_sheephead_male, k= 50) +
+             s(California_sheephead_female, k= 25) +
+             s(sunflower_star, k= 50) +
+             s(giant_spined_sea_star, k= 50) +
+             s(SurveyYear, k= 15),
+  data = Mixed_2005, method = 'REML', family = nb())
+
+gam.check(mod)
+gratia::appraise(mod, method = "simulate")
+gratia::draw(mod, scales = 'free')
+sum_mod <- summary(mod)
+sum_mod
+a <- sum_mod$p.table
+a
+b <- sum_mod$s.table
+b
 
 
 purps <- car::Anova(
