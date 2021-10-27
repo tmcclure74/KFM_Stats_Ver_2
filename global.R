@@ -15,6 +15,7 @@ Year_to_Filter_Data_by <- 2019
   library(arrow)
   library(ggforce)
   library(indicspecies)
+  library(mgcv)
   
 }
 
